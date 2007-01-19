@@ -81,7 +81,7 @@ class Box(gtk.DrawingArea):
                 curr = None
 
             if curr != None:
-                if curr[0] == MOD_PrePost or curr[0] == DELAY_PrePost:
+                if curr.control_id == MOD_PrePost or curr.control_id == DELAY_PrePost:
                     value = pod.Pod().get_boolean_param(curr.control_id)
                     pod.Pod().set_boolean_param(curr.control_id, not value)
                     self.queue_draw()
@@ -95,7 +95,7 @@ class Box(gtk.DrawingArea):
 
     def do_motion_notify_event(self, ev):
         if self.pressed_knob != None:
-            value = pod.Pod().get_param(self.pressed_knob[0])
+            value = pod.Pod().get_param(self.pressed_knob.control_id)
             value += int(self.button_y - ev.y)
 
             if value < self.pressed_knob.device_range[0]:
