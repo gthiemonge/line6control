@@ -23,7 +23,7 @@
 // from line6usb driver
 const char pod_version_header [] = { 0xf2, 0x7e, 0x7f, 0x06, 0x02 };
 
-static PyTypeObject PodType;
+static PyModuleDef podc_module;
 
 typedef struct {
     PyObject_HEAD;
@@ -101,10 +101,11 @@ pod_parse_sysex (Pod *pod)
             PyObject *o = Py_BuildValue("b", pod->buffer->data[i]);
             PyList_SET_ITEM(buf, i, o);
         }
-        ret = PyObject_CallMethod((PyObject *)pod, "sysex_handler",
-                "O", buf);
 
-        pod->buffer = 
+        ret = PyObject_CallMethod((PyObject *)pod, "sysex_handler",
+                                  "O", buf);
+
+        pod->buffer =
             g_byte_array_remove_range(pod->buffer, 0, 17);
 
         if(ret == NULL) {
@@ -126,7 +127,7 @@ pod_parse_sysex (Pod *pod)
         ret = PyObject_CallMethod((PyObject *)pod, "sysex_handler",
                 "O", buf);
 
-        pod->buffer = 
+        pod->buffer =
             g_byte_array_remove_range(pod->buffer, 0, 168);
 
         if(ret == NULL) {
@@ -139,14 +140,14 @@ pod_parse_sysex (Pod *pod)
             pod->buffer->data[5] == 0x56) {
         switch(pod->buffer->data[6]) {
             case 0x04: {
-                           pod->buffer = 
+                           pod->buffer =
                                g_byte_array_remove_range(pod->buffer, 0, 12);
 
                            return 1;
                        }
                        break;
             case 0x17: {
-                           pod->buffer = 
+                           pod->buffer =
                                g_byte_array_remove_range(pod->buffer, 0, 12);
 
                            return 1;
@@ -164,7 +165,7 @@ pod_parse_sysex (Pod *pod)
             PyList_SET_ITEM(buf, i, o);
         }
         ret = PyObject_CallMethod((PyObject *)pod, "sysex_handler",
-                "O", buf);			
+                "O", buf);
         pod->buffer = g_byte_array_remove_range(pod->buffer, 0, 7);
 
         if(ret == NULL) {
@@ -175,19 +176,15 @@ pod_parse_sysex (Pod *pod)
         return 1;
     } else if(pod->buffer->len >= 9 &&
             pod->buffer->data[5] == 0x24) { /* Save */
-        pod->buffer = 
+        pod->buffer =
             g_byte_array_remove_range(pod->buffer, 0, 9);
         return 1;
+    } else if(pod->buffer->data[5] == 0x0f) { /* Clip */
+        pod->buffer =
+            g_byte_array_remove_range(pod->buffer, 0, 7);
+        return 1;
     } else {
-        /*
-           int i;
-           printf("Unknown sysex\n");
-           for(i = 0; i < pod->buffer->len; i++) {
-           if((i % 8) == 0)
-           printf("\n");
-           printf("%02hhx ", pod->buffer->data[i]);
-           }b
-           printf("\n");	*/
+        printf("Unknown sysex\n");
     }
 
     return 0;
@@ -196,50 +193,56 @@ pod_parse_sysex (Pod *pod)
 static int
 pod_parse_buffer (Pod *self)
 {
-    int i;
+    int ret = -1;
 
-    if(self->buffer->len == 0)
+    if(self->buffer == NULL ||
+       self->buffer->len == 0)
         return 0;
 
+    PyGILState_STATE gstate;
+    gstate = PyGILState_Ensure();
+
+    printf("pod_parse_buffer data[0]=%02x\n", self->buffer->data[0]);
+    {
+        int _i;
+        char _ascii[20];
+        char const *_d = (char const *)self->buffer->data;
+        int _l = self->buffer->len;
+        for(_i = 0; _i < _l; _i++) {
+            if((_i % 16) == 0) {
+                if(_i) {
+                    _ascii[16] = 0;
+                    printf(" %s\n", _ascii);
+                }
+                printf("0x%06x: ", _i);
+            }
+            printf("%02hhx ", _d[_i]);
+            _ascii[_i % 16] = isgraph(_d[_i]) ? _d[_i] : '.';
+        }
+        _ascii[_i % 16] = 0;
+        for(; _i % 16; _i++) {
+            printf("   ");
+        }
+        printf(" %s\n", _ascii);
+    }
     switch(self->buffer->data[0]) {
         case 0xB0:
-            if(self->buffer->len >= 3) {
-                self->buffer =
-                    g_byte_array_remove_range(self->buffer, 0, 3);
-                return 1;
-            }
-
-            break;
         case 0xB2:
-            return pod_parse_cc(self);
+            ret = pod_parse_cc(self);
             break;
         case 0xC0:
-            if(self->buffer->len >= 2) {
-                self->buffer =
-                    g_byte_array_remove_range(self->buffer, 0, 2);
-                return 1;
-            }
-            break;
         case 0xC2:
-            return pod_parse_pc(self);
+            ret = pod_parse_pc(self);
             break;
         case 0xF2:
         case 0xF5:
-            return pod_parse_sysex(self);
+            ret = pod_parse_sysex(self);
             break;
     }
 
-    printf("%d bytes not processed !!\n", self->buffer->len);
+    PyGILState_Release(gstate);
 
-    for(i = 0; i < self->buffer->len; i++) {
-        if((i % 8) == 0)
-            printf("\n");
-        printf("%02hhx ", self->buffer->data[i]);
-    }
-    printf("\n");
-
-
-    return 0;
+    return ret;
 }
 
 static gboolean
@@ -317,15 +320,22 @@ static PyObject *
 pypod_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
     Pod *self;
+
+    if(!(self = (Pod *)type->tp_alloc(type, 0)))
+        return NULL;
+
+    return (PyObject *)self;
+}
+
+static int
+pypod_init(Pod *self, PyObject *args, PyObject *kwds)
+{
     int card;
     char name[32];
     int err;
 
     if(!PyArg_ParseTuple(args, "i", &card))
-        return NULL;
-
-    if(!(self = (Pod *)type->tp_alloc(type, 0)))
-        return NULL;
+        return -1;
 
     self->card = card;
     self->buffer = g_byte_array_new();
@@ -338,7 +348,7 @@ pypod_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
                     &(self->output), name, 0)) < 0) {
         PyErr_Format(PodError, "Cannot open device '%s': %s\n",
                 name, snd_strerror(err));
-        return NULL;
+        return -1;
     }
 
     snd_rawmidi_read(self->input, NULL, 0);
@@ -346,7 +356,7 @@ pypod_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 
     g_idle_add(pod_idle, self);
 
-    return (PyObject *)self;
+    return 0;
 }
 
 static PyObject *
@@ -365,7 +375,7 @@ pypod_close (Pod *self, PyObject *args)
         self->output = NULL;
     }
 
-    //	self->ob_type->tp_free((PyObject*)self);
+    //self->ob_type->tp_free((PyObject*)self);
 
     Py_INCREF(Py_None);
     return Py_None;
@@ -427,6 +437,8 @@ pypod_send_sysex (Pod *self, PyObject *args)
     char *tmp;
     int len, err, i;
 
+    printf("[%s:%d] \n", __func__, __LINE__);
+
     if(!PyArg_UnpackTuple(args, "send_sysex", 1, 200, &buffer))
         return NULL;
 
@@ -435,7 +447,7 @@ pypod_send_sysex (Pod *self, PyObject *args)
 
     for(i = 0; i < len; i++) {
         integer = PySequence_GetItem(buffer, i);
-        tmp[i] = (char)PyInt_AS_LONG(integer);
+        tmp[i] = (char)PyLong_AS_LONG(integer);
     }
 
     if ((err = snd_rawmidi_write(self->output, tmp, len)) < 0) {
@@ -481,6 +493,8 @@ pypod_sysex_handler (Pod *self, PyObject *args)
 {
     PyObject *buffer;
 
+    printf("[%s:%d] \n", __func__, __LINE__);
+
     if(!PyArg_ParseTuple(args, "O", &buffer))
         return NULL;
 
@@ -497,8 +511,8 @@ static PyMethodDef pod_methods[] = {
 
     {"param_handler", (PyCFunction)pypod_param_handler, METH_VARARGS},
     {"program_handler", (PyCFunction)pypod_program_handler, METH_VARARGS},
-    {"sysex_handler", (PyCFunction)pypod_sysex_handler, METH_VARARGS},
-    {NULL, NULL}
+    {"sysex_handler", (PyCFunction)pypod_sysex_handler, METH_VARARGS, ""},
+    {NULL}
 };
 
 static void
@@ -506,70 +520,51 @@ pypod_dealloc(Pod* self)
 {
 }
 
+static PyModuleDef podc_module = {
+    PyModuleDef_HEAD_INIT,
+    .m_name = "podc",
+    .m_doc = "",
+    .m_size = -1,
+};
+
 static PyTypeObject PodType = {
-        PyObject_HEAD_INIT(NULL)
-            0,
-        "podc.Pod",
-        sizeof(Pod),
-        0,                         /*tp_itemsize*/
-        (destructor)pypod_dealloc,                         /*tp_dealloc*/
-        0,                         /*tp_print*/
-        0,/*tp_getattr*/
-        0,                         /*tp_setattr*/
-        0,                         /*tp_compare*/
-        0,                         /*tp_repr*/
-        0,                         /*tp_as_number*/
-        0,                         /*tp_as_sequence*/
-        0,                         /*tp_as_mapping*/
-        0,                         /*tp_hash */
-        0,                         /*tp_call*/
-        0,                         /*tp_str*/
-        0,                         /*tp_getattro*/
-        0,                         /*tp_setattro*/
-        0,                         /*tp_as_buffer*/
-        Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE |
-            Py_TPFLAGS_HAVE_GC,        /*tp_flags*/
-        "Pod device",              /*tp_doc*/
-        (traverseproc)0,	/* tp_traverse */
-        (inquiry)0,		/* tp_clear */
-        (richcmpfunc)0,			/* tp_richcompare */
-        0,	/* tp_weaklistoffset */
-        (getiterfunc)0,			/* tp_iter */
-        (iternextfunc)0,			/* tp_iternext */
-        pod_methods,			/* tp_methods */
-        0,					/* tp_members */
-        0,			/* tp_getset */
-        (PyTypeObject *)0,			/* tp_base */
-        (PyObject *)0,			/* tp_dict */
-        0,					/* tp_descr_get */
-        0,					/* tp_descr_set */
-        0,	/* tp_dictoffset */
-        (initproc)0,		/* tp_init */
-        (allocfunc)0,			/* tp_alloc */
-        (newfunc)pypod_new,				/* tp_new */
-        (freefunc)0,		/* tp_free */
-        (inquiry)0,				/* tp_is_gc */
-        (PyObject *)0,			/* tp_bases */
-    };
+    PyVarObject_HEAD_INIT(NULL, 0)
+    .tp_name = "podc.Pod",
+    .tp_doc = "Pod object",
+    .tp_basicsize = sizeof(Pod),
+    .tp_itemsize = 0,
+    .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE | Py_TPFLAGS_HAVE_GC,
+    .tp_new = pypod_new,
+    .tp_init = (initproc)pypod_init,
+    .tp_dealloc = (destructor)pypod_dealloc,
+    .tp_methods = pod_methods,
+};
 
-void
-initpodc (void)
+PyMODINIT_FUNC
+PyInit_podc(void)
 {
-    PyObject* m, *d;
+    PyObject* m;
 
-    PodType.tp_new = pypod_new;
-    if (PyType_Ready(&PodType) < 0)
-        return;
+    if (PyType_Ready(&PodType) < 0) {
+        return NULL;
+    }
 
-    m = Py_InitModule("podc", NULL);
-    d = PyModule_GetDict(m);
+    m = PyModule_Create(&podc_module);
+    if (m == NULL) {
+        return NULL;
+    }
 
     PodError = PyErr_NewException("pod.PodError", NULL, NULL);
 
     Py_INCREF(&PodType);
-    PyModule_AddObject(m, "Pod", (PyObject *)&PodType);
-    //	PyDict_SetItemString(d, "Pod", (PyObject *)&PodType);
+    if (PyModule_AddObject(m, "Pod", (PyObject *)&PodType)) {
+        Py_DECREF(&PodType);
+        Py_DECREF(m);
+        return NULL;
+    }
 
     Py_INCREF(PodError);
     PyModule_AddObject(m, "PodError", PodError);
+
+    return m;
 }

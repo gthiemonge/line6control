@@ -22,12 +22,12 @@ import sys
 try:
     import podc
 except:
-    print "Cannont find podc.so, you need run 'make' to compile pypod.c."
+    print("Cannont find podc.so, you need run 'make' to compile pypod.c.")
     sys.exit()
 
-import pygtk
-pygtk.require('2.0')
-import gtk
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk
 
 import pod
 import ui
@@ -39,14 +39,15 @@ _ = gettext.gettext
 if __name__ == '__main__':
     try:
         devices = pod.get_devices()
+        print(devices)
         pod.Pod(devices[0])
     except IndexError:
-        dialog = gtk.MessageDialog(None, 0, gtk.MESSAGE_ERROR, gtk.BUTTONS_OK,
+        dialog = Gtk.MessageDialog(None, 0, Gtk.MESSAGE_ERROR, Gtk.BUTTONS_OK,
                                    _("Can't find Line 6 device.\nCheck your connection."))
         dialog.run()
         dialog.destroy()
         sys.exit(1)
-        
+
     ui.Interface()
-    gtk.main()
+    Gtk.main()
 

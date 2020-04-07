@@ -22,11 +22,11 @@ Preset_Name = slice(7, 23)
 class Preset(object):
     def __init__(self):
         self.buffer = None
-        
+
     def import_buffer(self, buffer):
         self.presetname = "".join(map(chr, buffer[Preset_Name])).strip('\x00')
         self.buffer = buffer
-        
+
     def __repr__(self):
         return "<%s(`%s', %s)>" % (self.__class__.__name__, self.presetname)
 

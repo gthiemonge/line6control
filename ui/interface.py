@@ -17,45 +17,48 @@
 #  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
 #  USA
 
-import pygtk
-pygtk.require('2.0')
-import gtk
-import gobject
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk
+from gi.repository import GObject
 
-from singleton import SimpleSingleton
+from .window import *
 
-from window import *
-
-class WaitWindow(gtk.Window):
+class WaitWindow(Gtk.Window):
     def __init__(self):
-        gtk.Window.__init__(self, gtk.WINDOW_POPUP)
-        self.set_position(gtk.WIN_POS_CENTER_ALWAYS)
-        
+        Gtk.Window.__init__(self) # XXX , Gtk.WINDOW_POPUP)
+        #self.set_position(Gtk.WIN_POS_CENTER_ALWAYS)
+
         self.set_title("Line 6 Control")
 
         self.set_border_width(10)
         self.set_size_request(250, 70)
-        
-        vbox = gtk.VBox(False, 5)
-        
-        label1 = gtk.Label("Please wait, retrieving POD presets...")
-        vbox.add(label1)
-        
-        self.progressbar = gtk.ProgressBar()
-        vbox.add(self.progressbar)
-        
-        self.add(vbox)
-        
-        self.show_all()
-        
-class Interface:
-    __metaclass__ = SimpleSingleton
 
+        vbox = Gtk.VBox(False, 5)
+
+        label1 = Gtk.Label("Please wait, retrieving POD presets...")
+        vbox.add(label1)
+
+        self.progressbar = Gtk.ProgressBar()
+        vbox.add(self.progressbar)
+
+        self.add(vbox)
+
+        self.show_all()
+
+class Interface:
+    __instance = None
     def __init__(self):
-        gobject.timeout_add(100, self.check_presetlist_done)
+        Interface.__instance = self
+
+        GObject.timeout_add(100, self.check_presetlist_done)
 
         self.wait = WaitWindow()
         self.win = None
+
+    @classmethod
+    def get(cls):
+        return cls.__instance
 
     def run(self):
         self.win = Window()
@@ -64,20 +67,21 @@ class Interface:
         return False
 
     def check_presetlist_done(self):
-        npatches = len(pod.Pod().patches)
+        p = pod.Pod.get()
+        npatches = len(p.patches)
 
-        if npatches > pod.Pod().channel_number:
-            gobject.idle_add(self.run)
+        if npatches > p.channel_number:
+            GObject.idle_add(self.run)
             return False
 
         if npatches != 0:
             self.wait.progressbar.set_fraction(float(npatches) / 127.0)
             try:
-                str = pod.Pod().patches[pod.Pod().pid].presetname
+                str = p.patches[p.pid].presetname
                 self.wait.progressbar.set_text(str)
             except KeyError:
                 pass
-            
+
         return True
 
     def add_preset(self, pid, podid, preset_name):
@@ -85,7 +89,7 @@ class Interface:
 
     def presets_changed(self, presets):
         if self.win == None:
-            gobject.timeout_add(100, self.presets_changed, presets)
+            GObject.timeout_add(100, self.presets_changed, presets)
             return False
 
         self.win.presets_changed(presets)

@@ -4,8 +4,8 @@ all: podc
 
 .PHONY: podc
 podc: pypod.c
-	python setup.py build
-	ln -fs build/lib.linux-i686-2.4/podc.so podc.so
+	python3 setup.py build
+	ln -fs $$(find build/ -wholename "*/lib.*/podc*.so") podc.so
 
 clean:
 	rm -rf build *.pyc ui/*.pyc *~ ui/*~ podc.so

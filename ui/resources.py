@@ -17,17 +17,24 @@
 #  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
 #  USA
 
-import pygtk
-pygtk.require('2.0')
-import gtk
-
-from singleton import SimpleSingleton
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk
+from gi.repository import Gdk
+from gi.repository.GdkPixbuf import Pixbuf
+import cairo
 
 class Resources:
-    __metaclass__ = SimpleSingleton
+    __instance = None
 
     def __init__(self):
-        self.knob_background = gtk.gdk.pixbuf_new_from_file("data/knob_bg.png")
-        self.knob_pix = gtk.gdk.pixbuf_new_from_file("data/knob.png")
-        self.switch = gtk.gdk.pixbuf_new_from_file("data/switch.png")
-        
+        Resources.__instance = self
+        self.knob_background = cairo.ImageSurface.create_from_png("data/knob_bg.png")
+        self.knob_pix = cairo.ImageSurface.create_from_png("data/knob.png")
+        self.switch = cairo.ImageSurface.create_from_png("data/switch.png")
+
+    @classmethod
+    def get(cls):
+        if not cls.__instance:
+            Resources()
+        return cls.__instance

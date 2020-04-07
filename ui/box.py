@@ -17,11 +17,10 @@
 #  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
 #  USA
 
-import pygtk
-pygtk.require('2.0')
-import gtk
-import gtk.gdk
-import pango
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk
+from gi.repository import Gdk
 import cairo
 
 import math
@@ -30,11 +29,11 @@ import sys
 
 from controls import *
 import pod
-from resources import Resources
+from .resources import Resources
 
-class Box(gtk.DrawingArea):
+class Box(Gtk.DrawingArea):
     __gtype_name__ = 'Box'
-    
+
     control = None
     pressed_knob = None
     button_y = 0
@@ -46,15 +45,15 @@ class Box(gtk.DrawingArea):
     last_sent = None
 
     def __init__(self):
-        gtk.DrawingArea.__init__(self)
+        Gtk.DrawingArea.__init__(self)
 
-        self.add_events(gtk.gdk.EXPOSURE_MASK |
-                        gtk.gdk.BUTTON_PRESS_MASK |
-                        gtk.gdk.BUTTON_RELEASE_MASK |
-                        gtk.gdk.POINTER_MOTION_MASK)
+        self.add_events(Gdk.EventMask.EXPOSURE_MASK |
+                        Gdk.EventMask.BUTTON_PRESS_MASK |
+                        Gdk.EventMask.BUTTON_RELEASE_MASK |
+                        Gdk.EventMask.POINTER_MOTION_MASK)
 
         self.set_size_request(self.width, self.height)
-        
+
     def do_button_press_event(self, ev):
         if ev.button == 1:
             t = time.time()
@@ -62,12 +61,12 @@ class Box(gtk.DrawingArea):
                 self.toggle_enabled()
 
             self.last_button_press_event = t
-            
+
             x = 35
             i = 0
             id = None
-            xd = Resources().knob_background.get_width()
-            
+            xd = Resources.get().knob_background.get_width()
+
             while x < self.width:
                 if ev.x >= x and ev.x <= x + xd:
                     id = i
@@ -82,10 +81,10 @@ class Box(gtk.DrawingArea):
 
             if curr != None:
                 if curr.control_id == MOD_PrePost or curr.control_id == DELAY_PrePost:
-                    value = pod.Pod().get_boolean_param(curr.control_id)
-                    pod.Pod().set_boolean_param(curr.control_id, not value)
+                    value = pod.Pod.get().get_boolean_param(curr.control_id)
+                    pod.Pod.get().set_boolean_param(curr.control_id, not value)
                     self.queue_draw()
-                else:                
+                else:
                     self.pressed_knob = curr
                     self.button_y = ev.y
 
@@ -95,7 +94,7 @@ class Box(gtk.DrawingArea):
 
     def do_motion_notify_event(self, ev):
         if self.pressed_knob != None:
-            value = pod.Pod().get_param(self.pressed_knob.control_id)
+            value = pod.Pod.get().get_param(self.pressed_knob.control_id)
             value += int(self.button_y - ev.y)
 
             if value < self.pressed_knob.device_range[0]:
@@ -105,36 +104,51 @@ class Box(gtk.DrawingArea):
 
             now = time.time ()
             if self.last_sent == None or (now - self.last_sent) > 0.01:
-                pod.Pod().send_cc(self.pressed_knob.control_id, value)
+                pod.Pod.get().send_cc(self.pressed_knob.control_id, value)
                 self.last_sent = now
 
             self.button_y = ev.y
             self.queue_draw()
 
-    def do_expose_event(self, ev):
-        self.ctx = self.window.cairo_create()
+
+    def do_draw(self, ct):
+        self.do_expose_event(ct)
+
+    def do_expose_event(self, ctx):
+        self.ctx = ctx #self.window.cairo_create()
+
+        target = ctx.get_target()
+        overlay = target.create_similar(cairo.CONTENT_COLOR_ALPHA,
+                                        self.width, self.height)
+        knobs = target.create_similar(cairo.CONTENT_COLOR_ALPHA,
+                                        self.width, self.height)
+
+        overlay_cr = cairo.Context(overlay)
 
         # draw background
         if self.is_enabled():
             offset = 10
             radius = 9
-            self.ctx.arc(offset, offset, radius,
+            overlay_cr.arc(offset, offset, radius,
                     - math.pi, - math.pi / 2)
-            self.ctx.arc(self.width - offset, offset, radius,
+            overlay_cr.arc(self.width - offset, offset, radius,
                     - math.pi / 2, 0)
-            self.ctx.arc(self.width - offset, self.height - offset, radius,
+            overlay_cr.arc(self.width - offset, self.height - offset, radius,
                     0, math.pi / 2)
-            self.ctx.arc(offset, self.height - offset, radius,
+            overlay_cr.arc(offset, self.height - offset, radius,
                     math.pi / 2, math.pi)
-            self.ctx.set_source_rgb(.7, .8, .9)
-            self.ctx.fill()
+            overlay_cr.set_source_rgb(.7, .8, .9)
+            overlay_cr.fill()
         else:
-            color = self.style.bg_gc[0]
-            self.window.draw_rectangle(color, True,
-                                       ev.area.x, ev.area.y,
-                                       ev.area.width, ev.area.height)
+            pass
+            #color = self.get_style().bg_gc[0]
+            #self.window.draw_rectangle(color, True,
+            #                           0, 0,
+            #                           self.get_allocation().width,
+            #                           self.get_allocation().heigh)
+            #                           #ev.area.x, ev.area.y,
+            #                           #ev.area.width, ev.area.height)
 
-        self.show_title()
 
         if self.control == None:
             return False
@@ -142,65 +156,80 @@ class Box(gtk.DrawingArea):
         # FIXME: add cab box controls
         if self.control.controls == None:
             return False
-        
-        k_pix = Resources().knob_pix
-        k_bg_pix = Resources().knob_background
+
+        knobs_cr = cairo.Context(knobs)
+
+        k_pix = Resources.get().knob_pix
+        k_bg_pix = Resources.get().knob_background
 
         xoffset = 35
         yoffset = (self.height - k_bg_pix.get_height()) / 2
 
         for elem in self.control.controls:
             if elem.control_id == MOD_PrePost or elem.control_id == DELAY_PrePost:
-                value = pod.Pod().get_boolean_param(elem.control_id)
-                self.show_text_boolean('PRE', 'POST', value, xoffset, yoffset)
+                value = pod.Pod.get().get_boolean_param(elem.control_id)
+                self.show_text_boolean(overlay_cr,
+                                       'PRE', 'POST', value, xoffset, yoffset)
 
                 if value == False:
                     xk = 40
                 else:
                     xk = 0
 
-                sw = Resources().switch
-                self.window.draw_pixbuf(self.style.black_gc, sw,
-                                        xk, 0,
-                                        xoffset, yoffset,
-                                        k_bg_pix.get_width(), k_bg_pix.get_height())
+                knob_fg = knobs.create_similar(cairo.CONTENT_COLOR_ALPHA, 40, 40)
+                knob_fg_cr = cairo.Context(knob_fg)
+
+                sw = Resources.get().switch
+                knob_fg_cr.set_source_surface(sw, -xk, 0)
+                knob_fg_cr.paint()
+
+                knobs_cr.set_source_surface(knob_fg, xoffset, yoffset)
+                knobs_cr.paint()
             else:
-                value = float(pod.Pod().get_param(elem.control_id))
+                value = float(pod.Pod.get().get_param(elem.control_id))
                 str = elem.name
-                
-                self.window.draw_pixbuf(self.style.black_gc,
-                                        k_bg_pix,
-                                        0, 0,
-                                        xoffset, yoffset,
-                                        k_bg_pix.get_width(), k_bg_pix.get_height())
-            
+
+                knobs_cr.set_source_surface(k_bg_pix, xoffset, yoffset)
+                knobs_cr.paint()
+
                 offset = (int)(1920.0 * value / 127.0);
                 xk = offset % 160;
                 xk = 120 - (xk - (xk % 40));
-                yk = offset / 160;
+                yk = offset // 160;
                 yk = yk * 40;
                 if xk == 120 and yk == 480:
                     xk = 0
                     yk = 440
 
-                self.window.draw_pixbuf(self.style.black_gc,
-                                        k_pix,
-                                        xk, yk,
-                                        xoffset, yoffset,
-                                        k_bg_pix.get_width(), k_bg_pix.get_height())
-                
-                self.show_text(elem, value, xoffset, yoffset)
+                knob_fg = knobs.create_similar(cairo.CONTENT_COLOR_ALPHA, 40, 40)
+                knob_fg_cr = cairo.Context(knob_fg)
+
+                knob_fg_cr.set_source_surface(k_pix, -xk, -yk)
+                knob_fg_cr.paint()
+
+                knobs_cr.set_source_surface(knob_fg, xoffset, yoffset)
+                knobs_cr.paint()
+
+                self.show_text(overlay_cr, elem, value, xoffset, yoffset)
 
             xoffset += self.xdiff
 
+
+        overlay_cr.set_source_surface(knobs, 0, 0)
+        overlay_cr.paint()
+
+        self.show_title(overlay_cr)
+
+        ctx.set_source_surface(overlay, 0, 0)
+        ctx.paint()
         return False
 
-    def show_text(self, elem, value, x, y):
-        
-        k_pix = Resources().knob_pix
-        k_bg_pix = Resources().knob_background
-        
-        self.ctx = self.window.cairo_create()
+    def show_text(self, ctx, elem, value, x, y):
+
+        k_pix = Resources.get().knob_pix
+        k_bg_pix = Resources.get().knob_background
+
+        #self.ctx = self.window.cairo_create()
 
         try:
             rr = elem.phys_range
@@ -211,103 +240,101 @@ class Box(gtk.DrawingArea):
                     value = mr[1]
                 if value < mr[0]:
                     value = mr[0]
-                
+
                 r = (value - mr[0]) / (mr[1] - mr[0])
                 v = round((rr[1] - rr[0]) * r + rr[0])
             except:
                 v = (rr[1] - rr[0]) * value + rr[0]
                 v = round(v / 127.0)
-                
+
             str = "%d" % (v)
-            
+
             try:
                 str += " %s" % (rr[2])
             except:
                 pass
         except:
             str = "%d %%" % (value / 1.27)
-            
-        self.ctx.select_font_face("Sans", cairo.FONT_SLANT_NORMAL,
+
+        ctx.select_font_face("Sans", cairo.FONT_SLANT_NORMAL,
                              cairo.FONT_WEIGHT_BOLD)
         if self.is_enabled():
-            self.ctx.set_source_rgb(.2, .2, .2)
+            ctx.set_source_rgb(.2, .2, .2)
         else:
-            self.ctx.set_source_rgb(.4, .4, .4)
-        self.ctx.set_font_size(10)
-        
-        self.ctx.new_path()
-        width, height = self.ctx.text_extents(str)[2:4]
-        self.ctx.move_to(int(x + k_bg_pix.get_width() / 2 - width / 2),
+            ctx.set_source_rgb(.4, .4, .4)
+        ctx.set_font_size(10)
+
+        ctx.new_path()
+        width, height = ctx.text_extents(str)[2:4]
+        ctx.move_to(int(x + k_bg_pix.get_width() / 2 - width / 2),
                     int(self.height - 5 - height))
-        self.ctx.text_path(str)
-        self.ctx.fill()
+        ctx.text_path(str)
+        ctx.fill()
 
-        self.ctx.new_path()
-        width, height = self.ctx.text_extents(elem.name)[2:4]
-        self.ctx.move_to(int(x + k_bg_pix.get_width() / 2 - width / 2),
+        ctx.new_path()
+        width, height = ctx.text_extents(elem.name)[2:4]
+        ctx.move_to(int(x + k_bg_pix.get_width() / 2 - width / 2),
                     int(y - 5))
-        self.ctx.text_path(elem.name)
-        self.ctx.fill()
+        ctx.text_path(elem.name)
+        ctx.fill()
 
-    def show_text_boolean(self, text1, text2, value, x, y):
-        k_pix = Resources().knob_pix
-        k_bg_pix = Resources().knob_background
+    def show_text_boolean(self, ctx, text1, text2, value, x, y):
+        k_pix = Resources.get().knob_pix
+        k_bg_pix = Resources.get().knob_background
 
-        self.ctx = self.window.cairo_create()
+        ctx.set_antialias(cairo.ANTIALIAS_SUBPIXEL)
 
-        self.ctx.set_antialias(cairo.ANTIALIAS_SUBPIXEL)
-            
-        self.ctx.select_font_face("Sans", cairo.FONT_SLANT_NORMAL,
+        ctx.select_font_face("Sans", cairo.FONT_SLANT_NORMAL,
                              cairo.FONT_WEIGHT_BOLD)
         if self.is_enabled():
-            self.ctx.set_source_rgb(.2, .2, .2)
+            ctx.set_source_rgb(.2, .2, .2)
         else:
-            self.ctx.set_source_rgb(.4, .4, .4)
-        self.ctx.set_font_size(10)
+            ctx.set_source_rgb(.4, .4, .4)
+        ctx.set_font_size(10)
 
-        self.ctx.new_path()
-        width, height = self.ctx.text_extents(text1)[2:4]
-        self.ctx.move_to(int(x + k_bg_pix.get_width() / 2 - width / 2),
+        ctx.new_path()
+        width, height = ctx.text_extents(text1)[2:4]
+        ctx.move_to(int(x + k_bg_pix.get_width() / 2 - width / 2),
                     int(self.height - 5 - height))
-        self.ctx.text_path(text1)
-        self.ctx.fill()
+        ctx.text_path(text1)
+        ctx.fill()
 
-        self.ctx.new_path()
-        width, height = self.ctx.text_extents(text2)[2:4]
-        self.ctx.move_to(int(x + k_bg_pix.get_width() / 2 - width / 2),
+        ctx.new_path()
+        width, height = ctx.text_extents(text2)[2:4]
+        ctx.move_to(int(x + k_bg_pix.get_width() / 2 - width / 2),
                     int(y - 5))
-        self.ctx.text_path(text2)
-        self.ctx.fill()
+        ctx.text_path(text2)
+        ctx.fill()
 
-    def show_title(self):
+    def show_title(self, ctx):
         if self.is_enabled():
-            self.ctx.select_font_face("Sans", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD)
-            self.ctx.set_source_rgb(.3, .4, .5)
+            ctx.select_font_face("Sans", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD)
+            ctx.set_source_rgb(.3, .4, .5)
         else:
-            self.ctx.select_font_face("Sans")
-            self.ctx.set_source_rgb(.6, .6, .6)
-        self.ctx.set_font_size(9)
+            ctx.select_font_face("Sans")
+            ctx.set_source_rgb(.6, .6, .6)
+        ctx.set_font_size(9)
 
-        self.ctx.new_path()
-        width, height = self.ctx.text_extents(self.box_name)[2:4]
-        self.ctx.move_to(15, int((self.height + width) / 2))
-        self.ctx.rotate(- math.pi / 2)
-        self.ctx.text_path(self.box_name)
-        self.ctx.fill()
-        
+        ctx.new_path()
+        width, height = ctx.text_extents(self.box_name)[2:4]
+        ctx.move_to(15, int((self.height + width) / 2))
+        ctx.rotate(- math.pi / 2)
+        ctx.text_path(self.box_name)
+        ctx.fill()
+
     def changed(self):
         try:
-            self.control = self.model[pod.Pod().get_param(self.control_model)]
+            self.control = self.model[pod.Pod.get().get_param(self.control_model)]
             self.queue_draw()
-        except Exception, e:
-            print "can't change box : %s" % (sys.exc_info()[0])
+        except Exception as e:
+            print("can't change box : %s" % (sys.exc_info()[0]))
             self.control = None
 
     def is_enabled(self):
-        return pod.Pod().get_boolean_param(self.control_enable)
-    
+        return pod.Pod.get().get_boolean_param(self.control_enable)
+
     def toggle_enabled(self):
-        pod.Pod().set_boolean_param(self.control_enable, not self.is_enabled())
+        pod.Pod.get().set_boolean_param(self.control_enable, not self.is_enabled())
         self.queue_draw()
 
 
@@ -319,16 +346,16 @@ class AmpBox(Box):
     control_enable = AMP_Enable
 
     box_name = 'Amps'
-    
+
     width = 400
     height = 90
     xdiff = 60
-    
+
     def is_enabled(self):
-        return not pod.Pod().get_boolean_param(self.control_enable)
+        return not pod.Pod.get().get_boolean_param(self.control_enable)
 
     def toggle_enabled(self):
-        pod.Pod().set_boolean_param(self.control_enable, self.is_enabled())
+        pod.Pod.get().set_boolean_param(self.control_enable, self.is_enabled())
         self.queue_draw()
 
 class CabBox(Box):
@@ -345,7 +372,7 @@ class CabBox(Box):
     xdiff = 60
 
     def is_enabled(self):
-        if pod.Pod().get_param(self.control_model) == 0:
+        if pod.Pod.get().get_param(self.control_model) == 0:
             return False
         else:
             return True
@@ -401,7 +428,7 @@ class CompBox(Box):
     control = CompModels[0]
 
     box_name = 'Comp'
-    
+
     width = 150
     height = 90
     xdiff = 50
@@ -422,7 +449,6 @@ class NoiseGateBox(Box):
     width = 150
     height = 90
     xdiff = 50
-    
+
     def changed(self):
         self.queue_draw()
-        

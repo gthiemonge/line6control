@@ -1,30 +1,28 @@
 Line 6 Control
 ==============
 
-Line 6 Control is a PyGTK application which can control a Line 6 USB device as the PODxt.
+Line 6 Control is a Python GTK application which can control a Line 6 USB device as the PODxt.
 
 This is an experimental application, only few features are implemented :
 
     * Channel switching,
     * Reading and writing parameters for Amplification, Stomp Box, Mod Box and Delay Box.
 
-Last version of this document can be find at http://gthiemonge.free.fr/pod/
-
 
 Requirements
 ------------
 
-    * Line 6 Control works with Markus Grabner's Line 6 USB driver (http://www.tanzband-scream.at/line6/). Some recent Linux kernels have older versions of this driver (podxtpro.ko in Ubuntu Dapper's 2.6.15 kernel release),
-    * Python,
-    * PyGTK (python-gtk2 package on Ubuntu Dapper),
-    * Glib C Headers (libglib2.0-dev package).
+    * Python3,
+    * python3-object,
+    * Glib C headers (glib2.0-devel package in CentOS/Fedora),
+    * Alsa lib headers (alsa-lib-devel)
 
 
 Running
 -------
 
 Type "make".
-When the python module is compiled, run Line 6 Control with "./main.py"
+When the python module is compiled, run Line 6 Control with "./line6control.py"
 
 
 Known issues

@@ -17,10 +17,10 @@
 #  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
 #  USA
 
-import pygtk
-pygtk.require('2.0')
-import gtk
-import gobject
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk
+from gi.repository import GObject
 
 import pod
 
@@ -30,11 +30,11 @@ import pod
     COLUMN_NAME
     ) = range(3)
 
-class PresetList(gtk.TreeView):
+class PresetList(Gtk.TreeView):
     __gtype_name__ = 'PresetList'
 
     def __init__(self):
-        gtk.TreeView.__init__(self)
+        Gtk.TreeView.__init__(self)
 
         self.set_headers_visible(False)
 
@@ -45,25 +45,25 @@ class PresetList(gtk.TreeView):
 
         self.set_size_request(150, -1)
 
-        for i in pod.Pod().patches:
-            patch = pod.Pod().patches[i]
-            
+        for i in pod.Pod.get().patches:
+            patch = pod.Pod.get().patches[i]
+
             podid = "%d%s" % (i / 4 + 1, chr(i % 4 + 65))
             name = patch.presetname
 
             self.add_elem(i, podid, name)
 
     def create_model(self):
-        self.model = gtk.ListStore(gobject.TYPE_UINT,
-                               gobject.TYPE_STRING,
-                               gobject.TYPE_STRING)
+        self.model = Gtk.ListStore(GObject.TYPE_UINT,
+                               GObject.TYPE_STRING,
+                               GObject.TYPE_STRING)
 
     def add_columns(self):
-        column = gtk.TreeViewColumn('podid', gtk.CellRendererText(),
+        column = Gtk.TreeViewColumn('podid', Gtk.CellRendererText(),
                                     text=COLUMN_PODID)
         self.append_column(column)
 
-        column = gtk.TreeViewColumn('name', gtk.CellRendererText(),
+        column = Gtk.TreeViewColumn('name', Gtk.CellRendererText(),
                                     text=COLUMN_NAME)
         self.append_column(column)
 
@@ -77,4 +77,4 @@ class PresetList(gtk.TreeView):
     def do_row_activated(self, path, view):
         iter = self.model.get_iter(path)
         id = self.model.get_value(iter, COLUMN_ID)
-        pod.Pod().set_channel(id)
+        pod.Pod.get().set_channel(id)

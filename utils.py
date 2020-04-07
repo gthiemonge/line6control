@@ -17,4 +17,4 @@ else:
         finally:
             del stack
 
-        print "%.3f <%s> <%s>  %s" % (time.time(), filename, funcname, msg)
+        print("%.3f <%s> <%s>  %s" % (time.time(), filename, funcname, msg))

@@ -126,7 +126,7 @@ class Controls:
         self.name = name
         self.realname = realname
         self.controls = controls
-        
+
 class EffectControls(Controls):
     type = "Effect"
 
@@ -360,7 +360,7 @@ ModModels = {
                        (Knob(MOD_Param1, 'SPEED', (0, 100), (0, 127), '%'),
                         Knob(MOD_Param2, 'WAVE', (0, 100), (0, 127), '%'),
                         Knob(MOD_VolumeMix, 'MIX', (0, 100), (0, 127), '%'),
-                        Knob(MOD_PrePost, 'PRE/POST', (0, 100), (0, 127), '%')))    
+                        Knob(MOD_PrePost, 'PRE/POST', (0, 100), (0, 127), '%')))
     }
 
 DelayModels = {

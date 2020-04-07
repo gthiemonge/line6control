@@ -17,16 +17,17 @@
 #  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
 #  USA
 
+import yaml
+
 import podc
 
-import pygtk
-pygtk.require('2.0')
-import gobject
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk
+from gi.repository import GObject
 
 from preset import Preset
 from controls import *
-
-from singleton import SimpleSingleton
 
 from ui import Interface
 from utils import debug_msg
@@ -48,13 +49,77 @@ from utils import debug_msg
     ACTION_NONE
     ) = range(2)
 
-class Pod(podc.Pod):
-    __metaclass__ = SimpleSingleton
+class PodDebug(podc.Pod):
+    def __init__(self, card):
+        super(PodDebug, self).__init__(card)
+
+        self.midi_messages = []
+        self.cur_sysex = None
+        self.cur_replies = []
+
+        self.sysex_cache = {}
+
+        #try:
+        #    with open('debug.dump') as fp:
+        #        d = yaml.safe_load(fp.read())
+        #        for msgs in d:
+        #            request, replies = msgs
+        #            self.sysex_cache[request] = replies
+        #except Exception as e:
+        #    print(e)
+
+    def send_cc(self, param, value):
+        super(PodDebug, self).send_cc(param, value)
+
+    def send_pc(self, value):
+        super(PodDebug, self).send_pc(value)
+
+    def send_sysex(self, buffer):
+        key = "".join("\\x{:02x}".format(b) for b in buffer)
+        print("send_sysex(buffer={})".format(key))
+        if key in self.sysex_cache:
+            print("found in cache (reply={})".format(self.sysex_cache[key]))
+            for reply in self.sysex_cache[key]:
+                ret = [int(b[1:], 16) for b in reply.split('\\')[1:]]
+                print(ret)
+                self._sysex_handler(ret)
+            return
+
+        if self.cur_replies:
+            self.midi_messages.append([self.cur_sysex, self.cur_replies])
+
+        self.cur_sysex = key
+        self.cur_replies = []
+        super(PodDebug, self).send_sysex(buffer)
+
+    def sysex_handler(self, buffer):
+        key = "".join("\\x{:02x}".format(b) for b in buffer)
+        print("sysex_handler(buffer={})".format(key))
+        self.cur_replies.append(key)
+        self._sysex_handler(buffer);
+
+    def dump(self):
+        if self.cur_replies:
+            self.midi_messages.append([self.cur_sysex, self.cur_replies])
+
+        if self.midi_messages:
+            with open('debug.dump', 'w') as fp:
+                fp.write(yaml.dump(self.midi_messages))
+
+class Pod(PodDebug):
+    __instance = None
 
     channel_number = 127
 
-    def __init__(self, card):
-        podc.Pod.__init__(self, card)
+    @classmethod
+    def get(cls):
+        return cls.__instance
+
+    def __init__(self, card=None):
+        super(Pod, self).__init__(card)
+
+        Pod.__instance = self
+
         self.patches = {}
         self.pid = 0
 
@@ -63,16 +128,17 @@ class Pod(podc.Pod):
         self.action = ACTION_NONE
 
         self.get_firmware_version()
-        gobject.idle_add(self.list_patches)
+        GObject.idle_add(self.list_patches)
 
     def update(self, presets = None):
-        gobject.idle_add(Interface().presets_changed, presets)
+        print("update(presets={})".format(presets))
+        GObject.idle_add(Interface.get().presets_changed, presets)
 
     def set_buffer(self, buffer):
         sysex = buffer
         sysex[0:7] = [0xF0, 0x00, 0x01, 0x0C, 0x03, 0x74, 0x05]
 
-        print sysex
+        #print sysex
 
     def get_firmware_version(self):
         self.send_sysex((0xF0, 0x7E, 0x7F, 0x06,
@@ -85,7 +151,7 @@ class Pod(podc.Pod):
 
     def get_patch(self, id):
         self.send_sysex((0xF0, 0x00, 0x01, 0x0C,
-                         0x03, 0x73, (id > 0x3F), id,
+                         0x03, 0x73, (id > 0x3F) and 1 or 0, id,
                          0x00, 0x00, 0xF7))
 
     def set_current_patch(self, buf):
@@ -140,7 +206,7 @@ class Pod(podc.Pod):
 
             if param == STOMP_Model:
                 p = ['stompbox']
-                
+
             if param in (STOMP_Param1, STOMP_Param1_NoteValue, STOMP_Param2,
                          STOMP_Param3, STOMP_Param4, STOMP_Param5,
                          STOMP_VolumeMix, STOMP_Enable):
@@ -161,7 +227,7 @@ class Pod(podc.Pod):
                          DELAY_Param2, DELAY_Param3, DELAY_Param4, DELAY_Param5,
                          DELAY_VolumeMix, DELAY_PrePost, DELAY_Enable):
                 p = ['delaybox']
-                
+
             self.update(p)
 
     def program_handler(self, value):
@@ -169,14 +235,14 @@ class Pod(podc.Pod):
         self.pid = value
         self.update()
 
-    def sysex_handler(self, buffer):
+    def _sysex_handler(self, buffer):
         debug_msg("dump 0x%x" % (buffer[5]))
-        
+
         if buffer[0:5] == [0xF2, 0x7E, 0x7F, 0x06, 0x02]:
             self.firmware_version = buffer[13] * 100 + buffer[14] * 10 + buffer[15];
             debug_msg("firmware version %d" % (self.firmware_version))
         if buffer[5] == 0x72: # finish dump
-            if self.action == ACTION_LIST_PATCHES: 
+            if self.action == ACTION_LIST_PATCHES:
                 debug_msg("Retrieving `%s'." % (self.patches[self.pid].presetname))
 
                 if self.pid < self.channel_number:
@@ -185,7 +251,9 @@ class Pod(podc.Pod):
                 elif self.pid == self.channel_number:
                     # all patch done
                     self.action = ACTION_NONE
-                    gobject.idle_add(self.get_current_patch)
+                    GObject.idle_add(self.get_current_patch)
+
+                    self.dump()
         if buffer[5] == 0x74: #dump
             if self.action == ACTION_LIST_PATCHES:
                 # store patch in list
@@ -199,6 +267,7 @@ class Pod(podc.Pod):
     def list_patches(self, pid = 0, first = True):
         self.action = ACTION_LIST_PATCHES
 
+        print("list_patches(pid={}, first={})".format(pid, first))
         # wait for last patch in self.patch
         if not self.pid in self.patches and first == False:
             return True
@@ -217,21 +286,21 @@ import re
 
 def get_devices():
     devices = []
-    
+
     f = open("/proc/asound/cards")
 
-    reg = re.compile('\s*(\d+) \[Line6USB')
-    
+    reg = re.compile('\s*(\d+) \[PODxt')
+
     while True:
         l = f.readline()
         if l == '':
-            break        
+            break
         m = reg.match(l)
         if m != None:
-            print "ok"
+            print("ok")
             devices.append(int(m.group(1)))
     f.close()
 
-    print devices
+    print(devices)
 
     return devices

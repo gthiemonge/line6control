@@ -17,19 +17,17 @@
 #  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
 #  USA
 
-import pygtk
-pygtk.require('2.0')
-import gtk
-import gtk.gdk
-import pango
-import cairo
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk
+from gi.repository import Gdk
 
 import math
 import time
 
 from controls import *
 import pod
-from resources import Resources
+from .resources import Resources
 
 freq_table = [ [50.0, 55.0, 60.0, 65.0, 70.0, 75.0, 80.0, 85.0,
             90.0, 95.0, 100.0, 105.0, 110.0, 115.0, 120.0, 125.0,
@@ -94,9 +92,9 @@ freq_table = [ [50.0, 55.0, 60.0, 65.0, 70.0, 75.0, 80.0, 85.0,
             6100.0, 6200.0, 6300.0, 6400.0, 6500.0, 6600.0, 6700.0, 6800.0,
             6900.0, 7000.0, 7100.0, 7200.0, 7300.0, 7400.0, 7500.0, 7600.0,
             7700.0, 7800.0, 7900.0, 8000.0, 8100.0, 8200.0, 8300.0, 8400.0,
-            8500.0, 8600.0, 8700.0, 8800.0, 8900.0, 9000.0, 9100.0, 9300.0] ] 
+            8500.0, 8600.0, 8700.0, 8800.0, 8900.0, 9000.0, 9100.0, 9300.0] ]
 
-class EQBox(gtk.DrawingArea):
+class EQBox(Gtk.DrawingArea):
     __gtype_name__ = 'EQBox'
 
     box_name = "EQ"
@@ -107,12 +105,12 @@ class EQBox(gtk.DrawingArea):
     last_button_press_event = 0
 
     def __init__(self):
-        gtk.DrawingArea.__init__(self)
+        Gtk.DrawingArea.__init__(self)
 
-        self.add_events(gtk.gdk.EXPOSURE_MASK |
-                gtk.gdk.BUTTON_PRESS_MASK |
-                gtk.gdk.BUTTON_RELEASE_MASK |
-                gtk.gdk.POINTER_MOTION_MASK)
+        self.add_events(Gdk.EventMask.EXPOSURE_MASK |
+                        Gdk.EventMask.BUTTON_PRESS_MASK |
+                        Gdk.EventMask.BUTTON_RELEASE_MASK |
+                        Gdk.EventMask.POINTER_MOTION_MASK)
 
         self.set_size_request(self.width, self.height)
 
@@ -120,7 +118,7 @@ class EQBox(gtk.DrawingArea):
         if ev.button == 1:
             t = time.time()
             if t - self.last_button_press_event < 0.1: # double click
-                self.toggle_enabled() 
+                self.toggle_enabled()
 
             self.last_button_press_event = t
 
@@ -164,15 +162,15 @@ class EQBox(gtk.DrawingArea):
         def to_gain(byte):
             return (12.6 + 12.8) * float(byte) / 127.0 - 12.8
 
-        f = [freq_table[0][pod.Pod().get_param(EQ_Freq1)],
-            freq_table[1][pod.Pod().get_param(EQ_Freq2)],
-            freq_table[2][pod.Pod().get_param(EQ_Freq3)],
-            freq_table[3][pod.Pod().get_param(EQ_Freq4)]]
+        f = [freq_table[0][pod.Pod.get().get_param(EQ_Freq1)],
+            freq_table[1][pod.Pod.get().get_param(EQ_Freq2)],
+            freq_table[2][pod.Pod.get().get_param(EQ_Freq3)],
+            freq_table[3][pod.Pod.get().get_param(EQ_Freq4)]]
         # -12.8 to 12.6
-        g = [to_gain(pod.Pod().get_param(EQ_Gain1)),
-            to_gain(pod.Pod().get_param(EQ_Gain2)),
-            to_gain(pod.Pod().get_param(EQ_Gain3)),
-            to_gain(pod.Pod().get_param(EQ_Gain4))]
+        g = [to_gain(pod.Pod.get().get_param(EQ_Gain1)),
+            to_gain(pod.Pod.get().get_param(EQ_Gain2)),
+            to_gain(pod.Pod.get().get_param(EQ_Gain3)),
+            to_gain(pod.Pod.get().get_param(EQ_Gain4))]
 
         for i in range(0, 4):
             y = (self.height - offset - 5) / 2 - g[i] / (12.6 + 12.8) * (self.height - offset - 5 / 2)
@@ -184,7 +182,7 @@ class EQBox(gtk.DrawingArea):
         self.ctx.set_source_rgb(.8, .8, .8)
         self.ctx.stroke()
 
-        self.show_title() 
+        self.show_title()
 
     def show_title(self):
         if self.is_enabled():
@@ -203,12 +201,12 @@ class EQBox(gtk.DrawingArea):
         self.ctx.fill()
 
     def changed(self):
-        print "changed"
+        print("changed")
         self.queue_draw()
 
     def is_enabled(self):
-        return pod.Pod().get_boolean_param(self.control_enable)
-                
+        return pod.Pod.get().get_boolean_param(self.control_enable)
+
     def toggle_enabled(self):
-        pod.Pod().set_boolean_param(self.control_enable, not self.is_enabled())
+        pod.Pod.get().set_boolean_param(self.control_enable, not self.is_enabled())
         self.queue_draw()
