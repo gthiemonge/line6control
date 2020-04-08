@@ -17,6 +17,7 @@
 #  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
 #  USA
 
+import cairo
 import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
@@ -122,42 +123,47 @@ class EQBox(Gtk.DrawingArea):
 
             self.last_button_press_event = t
 
-    def do_expose_event(self, ev):
-        self.ctx = self.window.cairo_create()
+    def do_draw(self, ctx):
+
+        target = ctx.get_target()
+        overlay = target.create_similar(cairo.CONTENT_COLOR_ALPHA,
+                                        self.width, self.height)
+        overlay_cr = cairo.Context(overlay)
 
         if self.is_enabled():
             offset = 10
             radius = 9
-            self.ctx.arc(offset, offset, radius,
+            overlay_cr.arc(offset, offset, radius,
                     - math.pi, - math.pi / 2)
-            self.ctx.arc(self.width - offset, offset, radius,
+            overlay_cr.arc(self.width - offset, offset, radius,
                     - math.pi / 2, 0)
-            self.ctx.arc(self.width - offset, self.height - offset, radius,
+            overlay_cr.arc(self.width - offset, self.height - offset, radius,
                     0, math.pi / 2)
-            self.ctx.arc(offset, self.height - offset, radius,
+            overlay_cr.arc(offset, self.height - offset, radius,
                     math.pi / 2, math.pi)
-            self.ctx.set_source_rgb(.7, .8, .9)
-            self.ctx.fill()
+            overlay_cr.set_source_rgb(.7, .8, .9)
+            overlay_cr.fill()
         else:
-            color = self.style.bg_gc[0]
-            self.window.draw_rectangle(color, True,
-                    ev.area.x, ev.area.y,
-                    ev.area.width, ev.area.height)
+            pass
+            #color = self.style.bg_gc[0]
+            #self.window.draw_rectangle(color, True,
+            #        ev.area.x, ev.area.y,
+            #        ev.area.width, ev.area.height)
 
 
         offset = 10
         radius = 9
 
-        self.ctx.arc(offset + 20, offset + 5, radius,
+        overlay_cr.arc(offset + 20, offset + 5, radius,
                 - math.pi, - math.pi / 2)
-        self.ctx.arc(self.width - offset - 5, offset + 5, radius,
+        overlay_cr.arc(self.width - offset - 5, offset + 5, radius,
                 - math.pi / 2, 0)
-        self.ctx.arc(self.width - offset - 5, self.height - offset - 5, radius,
+        overlay_cr.arc(self.width - offset - 5, self.height - offset - 5, radius,
                 0, math.pi / 2)
-        self.ctx.arc(offset + 20, self.height - offset - 5, radius,
+        overlay_cr.arc(offset + 20, self.height - offset - 5, radius,
                 math.pi / 2, math.pi)
-        self.ctx.set_source_rgba(.2, .2, .2, .5)
-        self.ctx.fill()
+        overlay_cr.set_source_rgba(.2, .2, .2, .5)
+        overlay_cr.fill()
 
         def to_gain(byte):
             return (12.6 + 12.8) * float(byte) / 127.0 - 12.8
@@ -172,33 +178,55 @@ class EQBox(Gtk.DrawingArea):
             to_gain(pod.Pod.get().get_param(EQ_Gain3)),
             to_gain(pod.Pod.get().get_param(EQ_Gain4))]
 
+        plots = []
+
         for i in range(0, 4):
-            y = (self.height - offset - 5) / 2 - g[i] / (12.6 + 12.8) * (self.height - offset - 5 / 2)
-            x = (self.width - offset - 5 - (offset + 20)) * f[i] / (11300.0 - 50.0) + offset + 20
+            y = ((self.height - offset) / 2 + 5 -
+                 g[i] / (12.6 + 12.8) * (self.height - offset - 5 / 2))
+
+            x_max = math.log(11300.)
+            x_min = math.log(50.)
+            x_log = math.log(f[i])
+            x = ((self.width - offset - 5 - (offset + 20))
+                 * (x_log - x_min) / (x_max - x_min) + offset + 20)
+            plots.append((x, y))
+
+        for i, p in enumerate(plots):
+            x, y = p
             if i == 0:
-                self.ctx.move_to(x, y)
+                overlay_cr.move_to(x, y)
             else:
-                self.ctx.line_to(x, y)
-        self.ctx.set_source_rgb(.8, .8, .8)
-        self.ctx.stroke()
+                overlay_cr.line_to(x, y)
+        overlay_cr.set_source_rgb(.8, .8, .8)
+        overlay_cr.stroke()
 
-        self.show_title()
+        for i, p in enumerate(plots):
+            x, y = p
+            overlay_cr.arc(x, y, 3, 0., 2 * math.pi)
+            overlay_cr.set_source_rgb(.8, .8, .8)
+            overlay_cr.fill()
+            overlay_cr.stroke()
 
-    def show_title(self):
+        self.show_title(overlay_cr)
+
+        ctx.set_source_surface(overlay, 0, 0)
+        ctx.paint()
+
+    def show_title(self, ctx):
         if self.is_enabled():
-            self.ctx.select_font_face("Sans", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD)
-            self.ctx.set_source_rgb(.3, .4, .5)
+            ctx.select_font_face("Sans", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD)
+            ctx.set_source_rgb(.3, .4, .5)
         else:
-            self.ctx.select_font_face("Sans")
-            self.ctx.set_source_rgb(.6, .6, .6)
-        self.ctx.set_font_size(9)
+            ctx.select_font_face("Sans")
+            ctx.set_source_rgb(.6, .6, .6)
+        ctx.set_font_size(9)
 
-        self.ctx.new_path()
-        width, height = self.ctx.text_extents(self.box_name)[2:4]
-        self.ctx.move_to(15, int((self.height + width) / 2))
-        self.ctx.rotate(- math.pi / 2)
-        self.ctx.text_path(self.box_name)
-        self.ctx.fill()
+        ctx.new_path()
+        width, height = ctx.text_extents(self.box_name)[2:4]
+        ctx.move_to(15, int((self.height + width) / 2))
+        ctx.rotate(- math.pi / 2)
+        ctx.text_path(self.box_name)
+        ctx.fill()
 
     def changed(self):
         print("changed")
