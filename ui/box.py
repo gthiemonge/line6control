@@ -29,12 +29,15 @@ import sys
 
 from controls import *
 import pod
+import podc
 from .resources import Resources
 
 class Box(Gtk.DrawingArea):
     __gtype_name__ = 'Box'
 
+    base_model = None
     control = None
+    has_control = False
     pressed_knob = None
     button_y = 0
 
@@ -44,8 +47,12 @@ class Box(Gtk.DrawingArea):
 
     last_sent = None
 
-    def __init__(self):
+    def __init__(self, device):
         Gtk.DrawingArea.__init__(self)
+
+        self.model = self.base_model.get(device)
+        if self.has_control:
+            self.control = self.model[0]
 
         self.add_events(Gdk.EventMask.EXPOSURE_MASK |
                         Gdk.EventMask.BUTTON_PRESS_MASK |
@@ -165,6 +172,8 @@ class Box(Gtk.DrawingArea):
         xoffset = 35
         yoffset = (self.height - k_bg_pix.get_height()) / 2
 
+        p = pod.Pod.get()
+
         for elem in self.control.controls:
             if elem.control_id == MOD_PrePost or elem.control_id == DELAY_PrePost:
                 value = pod.Pod.get().get_boolean_param(elem.control_id)
@@ -186,7 +195,7 @@ class Box(Gtk.DrawingArea):
                 knobs_cr.set_source_surface(knob_fg, xoffset, yoffset)
                 knobs_cr.paint()
             else:
-                value = float(pod.Pod.get().get_param(elem.control_id))
+                value = float(p.get_param(elem.control_id))
                 str = elem.name
 
                 knobs_cr.set_source_surface(k_bg_pix, xoffset, yoffset)
@@ -323,12 +332,15 @@ class Box(Gtk.DrawingArea):
         ctx.fill()
 
     def changed(self):
-        try:
-            self.control = self.model[pod.Pod.get().get_param(self.control_model)]
+        if len(self.model) == 1:
+            self.control = self.model[0]
             self.queue_draw()
-        except Exception as e:
-            print("can't change box : %s" % (sys.exc_info()[0]))
-            self.control = None
+            return
+
+        p = pod.Pod.get()
+        param = p.get_param(self.control_model)
+        self.control = self.model.get(param, self.model[0]) # XXX
+        self.queue_draw()
 
     def is_enabled(self):
         return pod.Pod.get().get_boolean_param(self.control_enable)
@@ -341,7 +353,7 @@ class Box(Gtk.DrawingArea):
 class AmpBox(Box):
     __gtype_name__ = 'AmpBox'
 
-    model = AmpModels
+    base_model = AmpModels
     control_model = AMP_Model
     control_enable = AMP_Enable
 
@@ -351,8 +363,14 @@ class AmpBox(Box):
     height = 90
     xdiff = 60
 
+    def __init__(self, device):
+        super(AmpBox, self).__init__(device)
+
     def is_enabled(self):
-        return not pod.Pod.get().get_boolean_param(self.control_enable)
+        p = pod.Pod.get()
+        if p.device == podc.DEVICE_POCKETPOD:
+            return True
+        return not p.get_boolean_param(self.control_enable)
 
     def toggle_enabled(self):
         pod.Pod.get().set_boolean_param(self.control_enable, self.is_enabled())
@@ -361,7 +379,7 @@ class AmpBox(Box):
 class CabBox(Box):
     __gtype_name__ = 'CabBox'
 
-    model = CabModels
+    base_model = CabModels
     control_model = CAB_Model
     control_enable = None
 
@@ -383,7 +401,7 @@ class CabBox(Box):
 class StompBox(Box):
     __gtype_name__ = 'StompBox'
 
-    model = StompModels
+    base_model = StompModels
     control_model = STOMP_Model
     control_enable = STOMP_Enable
 
@@ -393,10 +411,23 @@ class StompBox(Box):
     height = 90
     xdiff = 50
 
+class EffectBox(Box):
+    __gtype_name__ = 'EffectBox'
+
+    base_model = EffectModels
+    control_model = EFFECT_Setup
+    control_enable = None
+
+    box_name = 'Effect'
+
+    width = 400
+    height = 90
+    xdiff = 50
+
 class ModBox(Box):
     __gtype_name__ = 'ModBox'
 
-    model = ModModels
+    base_model = ModModels
     control_model = MOD_Model
     control_enable = MOD_Enable
 
@@ -409,7 +440,7 @@ class ModBox(Box):
 class DelayBox(Box):
     __gtype_name__ = 'DelayBox'
 
-    model = DelayModels
+    base_model = DelayModels
     control_model = DELAY_Model
     control_enable = DELAY_Enable
 
@@ -422,10 +453,10 @@ class DelayBox(Box):
 class CompBox(Box):
     __gtype_name__ = 'CompBox'
 
-    model = CompModels
+    base_model = CompModels
     control_model = None
     control_enable = COMP_Enable
-    control = CompModels[0]
+    has_control = True
 
     box_name = 'Comp'
 
@@ -439,10 +470,10 @@ class CompBox(Box):
 class NoiseGateBox(Box):
     __gtype_name__ = 'NoiseGateBox'
 
-    model = NoiseGateModels
+    base_model = NoiseGateModels
     control_model = None
     control_enable = GATE_Enable
-    control = NoiseGateModels[0]
+    has_control = True
 
     box_name = 'Gate'
 

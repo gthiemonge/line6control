@@ -70,7 +70,7 @@ class Interface:
         p = pod.Pod.get()
         npatches = len(p.patches)
 
-        if npatches > p.channel_number:
+        if npatches > p.channel_count:
             GObject.idle_add(self.run)
             return False
 

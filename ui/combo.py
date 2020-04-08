@@ -23,13 +23,16 @@ from gi.repository import Gtk
 from gi.repository import GObject
 
 import pod
+import podc
 from controls import *
 
 class ComboBox(Gtk.ComboBox):
     __gtype_name__ = 'ComboBox'
 
-    def __init__(self):
+    def __init__(self, device):
         Gtk.ComboBox.__init__(self)
+
+        self.models = self.base_models.get(device)
 
         self.from_device = False
 
@@ -82,46 +85,60 @@ class ComboBox(Gtk.ComboBox):
                 pod.Pod.get().update()
 
     def changed(self):
-        try:
-            val = pod.Pod.get().get_param(self.control)
-            self.set_active(val, True)
-        except Exception as e:
-            print("can't change %s : %s" % (self.__gtype_name__, e))
+        if len(self.models) == 1:
+            return
+        p = pod.Pod.get()
+        param = p.get_param(self.control)
+        self.set_active(param, True)
 
+class EffectComboBox(ComboBox):
+    __gtype_name__ = 'EffectComboBox'
+
+    control = EFFECT_Setup
+    base_models = EffectModels
 
 class StompComboBox(ComboBox):
     __gtype_name__ = 'StompComboBox'
 
     control = STOMP_Model
-    models = StompModels
+    base_models = StompModels
 
 class ModComboBox(ComboBox):
     __gtype_name__ = 'ModComboBox'
 
     control = MOD_Model
-    models = ModModels
+    base_models = ModModels
 
 class DelayComboBox(ComboBox):
     __gtype_name__ = 'DelayComboBox'
 
     control = DELAY_Model
-    models = DelayModels
+    base_models = DelayModels
 
 class AmpComboBox(ComboBox):
     __gtype_name__ = 'AmpComboBox'
 
-    control = 11 # ??
-    models = AmpModels
+    base_models = AmpModels
+
+    def __init__(self, device):
+        if device == podc.DEVICE_POCKETPOD:
+            self.control = 12
+        else:
+            self.control = 11
+
+        super(AmpComboBox, self).__init__(device)
 
     # specific for Amp !!
     def changed(self):
-        try:
-            self.set_active(pod.Pod.get().get_param(AMP_Model), True)
-        except Exception as e:
-            print("can't change ampcombobox : %s" % (e))
+        p = pod.Pod.get()
+        #if p.device == podc.DEVICE_POCKETPOD:
+        param = p.get_param(AMP_Model_wo_defaults)
+        #else:
+        #    param = p.get_param(AMP_Model)
+        self.set_active(param, True)
 
 class CabComboBox(ComboBox):
     __gtype_name__ = 'CabComboBox'
 
     control = CAB_Model
-    models = CabModels
+    base_models = CabModels

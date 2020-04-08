@@ -28,6 +28,7 @@ except:
 import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
+from gi.repository import GLib
 
 import pod
 import ui
@@ -39,7 +40,6 @@ _ = gettext.gettext
 if __name__ == '__main__':
     try:
         devices = pod.get_devices()
-        print(devices)
         pod.Pod(devices[0])
     except IndexError:
         dialog = Gtk.MessageDialog(None, 0, Gtk.MESSAGE_ERROR, Gtk.BUTTONS_OK,

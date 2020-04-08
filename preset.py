@@ -21,17 +21,22 @@ Preset_Name = slice(7, 23)
 
 class Preset(object):
     def __init__(self):
-        self.buffer = None
+        self.presetname = ''
 
-    def import_buffer(self, buffer):
-        self.presetname = "".join(map(chr, buffer[Preset_Name])).strip('\x00')
-        self.buffer = buffer
+        self.params = {}
+
+    def import_params(self, name, params):
+        self.presetname = name
+        self.params = params
 
     def __repr__(self):
-        return "<%s(`%s', %s)>" % (self.__class__.__name__, self.presetname)
+        return "<%s(`%s')>" % (self.__class__.__name__, self.presetname)
 
     def get_value(self, param):
-        return self.buffer[0x27 + param]
+        if param not in self.params:
+            print("FIXME unknown param {}".format(param))
+            return 0
+        return self.params[param]
 
     def set_value(self, param, val):
-        self.buffer[0x27 + param] = val
+        self.params[param] = val
