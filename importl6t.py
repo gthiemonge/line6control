@@ -138,11 +138,11 @@ L6TStomps = {
 class ImportL6T:
     def __init__(self, filename):
         self.filename = filename
-        self.buffer = [0 for i in xrange(0, 168+4)]
+        self.buffer = [0 for i in range(0, 168+4)]
 
     def parse(self):
         self.current_minf = None
-        self.f = open(self.filename)
+        self.f = open(self.filename, 'rb')
 
         while True:
             h = self.read_header()
@@ -235,7 +235,7 @@ class ImportL6T:
 
                 print("%05x %2d %2d" % (self.current_minf, type, type_2))
                 if self.current_minf == M_AMP:
-                    value = self.read_float() * 128
+                    value = int(self.read_float() * 128)
                     if type == 0:
                         self.buffer[0x27 + AMP_Bass] = value
                     elif type == 1:
@@ -252,11 +252,11 @@ class ImportL6T:
                         self.buffer[0x27 + AMP_Pan] = value
 
                 elif self.current_minf == M_CAB:
-                    value = self.read_float() * 128
+                    value = int(self.read_float() * 128)
                     #print("%d %d %x" % (type, type_2, value))
 
                 elif self.current_minf == M_AIR:
-                    value = self.read_float() * 128
+                    value = int(self.read_float() * 128)
                     print("%d %d %x" % (type, type_2, value))
                     if type == 0:
                         self.buffer[0x27 + ROOM_Level] = value
@@ -269,11 +269,11 @@ class ImportL6T:
                             value = 0
                         self.buffer[0x27 + VOLUME_PrePost] = value
                     elif type == 4:
-                        value = self.read_float() * 128
+                        value = int(self.read_float() * 128)
                         self.buffer[0x27 + VOLUME_Minimum] = value
 
                 elif self.current_minf == M_REV_PRE or self.current_minf == M_REV_POST:
-                    value = self.read_float() * 128
+                    value = int(self.read_float() * 128)
                     print("%d %d %x" % (type, type_2, value))
                     if type_2 == 1:
                         if type == 2:
@@ -288,22 +288,22 @@ class ImportL6T:
 
                 elif self.current_minf == M_COMP:
                     if type == 0:
-                        value = 128 - self.read_float()
+                        value = int(128 - self.read_float())
                         self.buffer[0x27 + COMP_Thresh] = value
                     else:
-                        value = self.read_float() * 128
+                        value = int(self.read_float() * 128)
                         self.buffer[0x27 + COMP_Gain] = value
 
                 elif self.current_minf == M_GATE:
                     if type == 0:
-                        value = - self.read_float()
+                        value = - int(self.read_float())
                         self.buffer[0x27 + GATE_Thresh] = value
                     else:
-                        value = self.read_float() * 128
+                        value = int(self.read_float() * 128)
                         self.buffer[0x27 + GATE_Decay] = value
 
                 elif self.current_minf == M_STOMP_PRE or self.current_minf == M_STOMP_POST:
-                    value = self.read_float() * 128
+                    value = int(self.read_float() * 128)
                     if type == 0:
                         self.buffer[0x27 + STOMP_Param1] = value
                     elif type == 1:
@@ -320,7 +320,7 @@ class ImportL6T:
                         print("STOMP not handled : %d %x" % (type, value))
 
                 elif self.current_minf == M_MOD_PRE or self.current_minf == M_MOD_POST:
-                    value = self.read_float() * 128
+                    value = int(self.read_float() * 128)
                     if type_2 == 16:
                         if type == 0:
                             self.buffer[0x27 + MOD_Param1] = value
@@ -341,7 +341,7 @@ class ImportL6T:
                             pass
 
                 elif self.current_minf == M_DELAY_PRE or self.current_minf == M_DELAY_POST:
-                    value = self.read_float() * 128
+                    value = int(self.read_float() * 128)
                     if type_2 == 16:
                         if type == 0:
                             self.buffer[0x27 + DELAY_Param1] = value
@@ -364,7 +364,7 @@ class ImportL6T:
                             print("DELAY not handled : %d %x" % (type, value))
 
                 elif self.current_minf == M_WAH:
-                    value = self.read_float() * 128
+                    value = int(self.read_float() * 128)
                     self.buffer[0x27 + WAH_Position] = value
                 else:
                     value = self.read_float()
@@ -376,25 +376,24 @@ class ImportL6T:
 
     def read(self, size):
         b = self.f.read(size)
-        return map(ord, b)
+        return b
 
     def read_byte(self):
         return self.read(1)[0]
 
     def read_int(self):
         buf = self.f.read(4)
-        ret = unpack('>i', "".join(buf))[0]
+        ret = unpack('>i', buf)[0]
         return ret
 
     def read_float(self):
         buf = self.f.read(4)
-        ret = unpack('>f', "".join(buf))[0]
+        ret = unpack('>f', buf)[0]
         return ret
 
     def read_header(self):
         buf = self.read(4)
-        str = "".join(map(chr, buf))
-        return str
+        return buf.decode('utf-8')
 
 if __name__ == '__main__':
     #imp = ImportL6T('marshall-jcm800.l6t')
