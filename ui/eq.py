@@ -99,7 +99,7 @@ class EQBox(Gtk.DrawingArea):
     __gtype_name__ = 'EQBox'
 
     box_name = "EQ"
-    width = 350
+    width = 450
     height = 140
 
     control_enable = EQ_Enable

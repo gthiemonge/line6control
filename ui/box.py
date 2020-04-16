@@ -359,7 +359,7 @@ class AmpBox(Box):
 
     box_name = 'Amps'
 
-    width = 400
+    width = 450
     height = 90
     xdiff = 60
 
@@ -398,6 +398,26 @@ class CabBox(Box):
     def toggle_enabled(self):
         pass
 
+class MicBox(Box):
+    __gtype_name__ = 'MicBox'
+
+    base_model = MicModels
+    control_model = MIC_Select
+    control_enable = None
+    has_control = True
+
+    box_name = 'Mic'
+
+    width = 150
+    height = 90
+    xdiff = 60
+
+    def is_enabled(self):
+        return pod.Pod.get().get_param(ROOM_Level) > 0
+
+    def toggle_enabled(self):
+        pass
+
 class StompBox(Box):
     __gtype_name__ = 'StompBox'
 
@@ -407,7 +427,7 @@ class StompBox(Box):
 
     box_name = 'Stomp'
 
-    width = 400
+    width = 450
     height = 90
     xdiff = 50
 
@@ -420,7 +440,7 @@ class EffectBox(Box):
 
     box_name = 'Effect'
 
-    width = 400
+    width = 450
     height = 90
     xdiff = 50
 
@@ -433,7 +453,7 @@ class ModBox(Box):
 
     box_name = 'Mod'
 
-    width = 400
+    width = 450
     height = 90
     xdiff = 50
 
@@ -446,7 +466,7 @@ class DelayBox(Box):
 
     box_name = 'Delay'
 
-    width = 400
+    width = 450
     height = 90
     xdiff = 50
 
@@ -483,3 +503,6 @@ class NoiseGateBox(Box):
 
     def changed(self):
         self.queue_draw()
+
+    def is_enabled(self):
+        return pod.Pod.get().get_param(GATE_Thresh) != 96

@@ -79,23 +79,32 @@ class Window:
             self.boxes['ampbox'] = AmpBox(p.device)
             vbox.add(self.boxes['ampbox'])
 
+            hbox2 = Gtk.Box()
+            vbox.add(hbox2)
+
             self.boxes['ampcombobox'] = AmpComboBox(p.device)
-            vbox.add(self.boxes['ampcombobox'])
+            hbox2.add(self.boxes['ampcombobox'])
+
+            if p.device in CabBox.base_model:
+                self.boxes['cabcombobox'] = CabComboBox(p.device)
+                hbox2.add(self.boxes['cabcombobox'])
+
+            hbox2.show()
+            vbox.show()
+
+        if True: #p.device in MicBox.base_model:
+            vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+            hbox.add(vbox)
+
+            self.boxes['micbox'] = MicBox(p.device)
+            vbox.add(self.boxes['micbox'])
+
+            self.boxes['miccombobox'] = MicComboBox(p.device)
+            vbox.add(self.boxes['miccombobox'])
 
             vbox.show()
 
-            if p.device in CabBox.base_model:
-                vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-                hbox.add(vbox)
-
-                self.boxes['cabbox'] = CabBox(p.device)
-                vbox.add(self.boxes['cabbox'])
-
-                self.boxes['cabcombobox'] = CabComboBox(p.device)
-                vbox.add(self.boxes['cabcombobox'])
-
-                vbox.show()
-
+        if hbox:
             hbox.show()
             hbox = None
 

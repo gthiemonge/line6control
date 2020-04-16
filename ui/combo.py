@@ -142,3 +142,9 @@ class CabComboBox(ComboBox):
 
     control = CAB_Model
     base_models = CabModels
+
+class MicComboBox(ComboBox):
+    __gtype_name__ = 'MixComboBox'
+
+    control = MIC_Select
+    base_models = MicModels

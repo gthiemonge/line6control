@@ -162,6 +162,15 @@ class CabControls(Controls):
         Controls.__init__(self, name, realname)
 
 
+class MicControls(Controls):
+    type = "Mic"
+
+    def __init__(self, name, realname = None):
+        knobs = [
+            Knob(ROOM_Level, 'ROOM', (0, 100), (0, 127), '%')
+        ]
+        super(MicControls, self).__init__(name, name, knobs)
+
 AmpModels = {
     podc.DEVICE_POCKETPOD: {
         0 : AmpControls('Tube Preamp'),
@@ -289,6 +298,15 @@ CabModels = {
         22 : CabControls('4x12 Treadplate'),
         23 : CabControls('1x15 Thunder'),
         24 : CabControls('2x12 Wishbook')
+    }
+}
+
+MicModels = {
+    podc.DEVICE_PODXT: {
+        0: MicControls('57 On Axis'),
+        1: MicControls('57 Off Axis'),
+        2: MicControls('421 Dynamic'),
+        3: MicControls('67 Condenser'),
     }
 }
 
