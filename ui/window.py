@@ -43,8 +43,8 @@ class Window:
         self.glade.add_from_file("line6control.glade")
         self.glade.connect_signals({
             'previous_channel_cb' : self.previous_channel_cb,
-            'next_channel_cb' : self.next_channel_cb})
-            #'on_open_file_activate' : self.open_file_cb})
+            'next_channel_cb' : self.next_channel_cb,
+            'routing_change_cb': self.routing_change_cb})
 
         self.main_window = self.glade.get_object("main_window")
         self.main_window.connect('delete-event', self.do_delete_event)
@@ -59,6 +59,9 @@ class Window:
         self.next_channel = self.glade.get_object("next_channel")
 
         p = pod.Pod.get()
+
+        route_id = p.route + 1
+        self.glade.get_object("routing_{}".format(route_id)).activate()
 
         self.presetlist = PresetList()
         self.glade.get_object("preset_list").add(self.presetlist)
@@ -234,6 +237,15 @@ class Window:
         fd.cancel_button.connect("clicked", lambda w: fd.destroy())
 
         fd.show()
+
+    def routing_change_cb(self, obj):
+        if obj.get_active():
+            obj_id = Gtk.Buildable.get_name(obj)
+
+            route_id = int(obj_id.split('_')[1]) - 1
+
+            p = pod.Pod.get()
+            p.set_route(route_id)
 
     def open_file_ok_cb(self, w, fd):
         filename = fd.get_filename()

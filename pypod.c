@@ -52,6 +52,8 @@ typedef struct {
     char in_dump;
     int dump_patch_id;
 
+    int route_id;
+
     snd_rawmidi_t *input, *output;
 
     GByteArray *buffer;
@@ -235,6 +237,29 @@ pod_list_patches (gpointer data)
 }
 
 static int
+pod_set_route (Pod *pod, int route_id)
+{
+    uint8_t sysex_buffer[] = {
+        0xf0, 0x00, 0x01, 0x0c,
+        0x03, 0x56, 0x05, 0x00,
+        0x00, 0x00, route_id, 0xf7
+    };
+
+    return pod_send_sysex(pod, sysex_buffer, sizeof(sysex_buffer));
+}
+
+static int
+pod_request_route (Pod *pod)
+{
+    uint8_t sysex_buffer[] = {
+        0xf0, 0x00, 0x01, 0x0c,
+        0x03, 0x57, 0x05, 0xf7
+    };
+
+    return pod_send_sysex(pod, sysex_buffer, sizeof(sysex_buffer));
+}
+
+static int
 pod_parse_sysex (Pod *pod)
 {
     PyObject *ret;
@@ -331,7 +356,12 @@ pod_parse_sysex (Pod *pod)
             g_byte_array_remove_range(pod->buffer, 0, sysex_len);
 
         pod->dump_patch_id = 0;
-        g_idle_add(pod_list_patches, pod);
+
+        if (pod->device == DEVICE_PODXT) {
+            pod_request_route(pod);
+        } else {
+            g_idle_add(pod_list_patches, pod);
+        }
 
         return 1;
     } else if((sysex_len == 168 && pod->buffer->data[5] == 0x74) ||
@@ -423,23 +453,23 @@ pod_parse_sysex (Pod *pod)
         }
 
         return 1;
-    } else if(pod->buffer->len >= 12 &&
-            pod->buffer->data[5] == 0x56) {
+    } else if(pod->buffer->data[5] == 0x56) {
         switch(pod->buffer->data[6]) {
-            case 0x04: {
-                           pod->buffer =
-                               g_byte_array_remove_range(pod->buffer, 0, 12);
+            case 0x05:
+                pod->route_id = pod->buffer->data[10];
+                pod->buffer =
+                    g_byte_array_remove_range(pod->buffer, 0, sysex_len);
 
-                           return 1;
-                       }
-                       break;
-            case 0x17: {
-                           pod->buffer =
-                               g_byte_array_remove_range(pod->buffer, 0, 12);
+                g_idle_add(pod_list_patches, pod);
 
-                           return 1;
-                       }
-                       break;
+                break;
+            case 0x04:
+            case 0x17:
+            default:
+                pod->buffer =
+                    g_byte_array_remove_range(pod->buffer, 0, sysex_len);
+
+                return 1;
         }
     } else if(pod->buffer->len >= 7 &&
             pod->buffer->data[5] == 0x72) { /* Finished dump */
@@ -675,6 +705,20 @@ pypod_send_pc (Pod *self, PyObject *args)
 }
 
 static PyObject *
+pypod_set_route (Pod *self, PyObject *args)
+{
+    int value;
+
+    if(!PyArg_ParseTuple(args, "i", &value))
+        return NULL;
+
+    pod_set_route(self, value);
+
+    Py_INCREF(Py_None);
+    return Py_None;
+}
+
+static PyObject *
 pypod_param_handler (Pod *self, PyObject *args)
 {
     char param, value;
@@ -740,6 +784,7 @@ static PyMethodDef pod_methods[] = {
     {"get_current_patch", (PyCFunction)pypod_get_current_patch, METH_VARARGS},
     {"on_patch_update", (PyCFunction)pypod_on_patch_update, METH_VARARGS},
     {"on_current_patch", (PyCFunction)pypod_on_current_patch, METH_VARARGS},
+    {"set_route", (PyCFunction)pypod_set_route, METH_VARARGS},
     {NULL}
 };
 
@@ -750,6 +795,8 @@ static PyMemberDef pod_members[] = {
         "firmware_version"},
     {"channel_count", T_INT, offsetof(Pod, channel_count), 0,
         "number of channels"},
+    {"route", T_INT, offsetof(Pod, route_id), 0,
+        "Re-amp route id"},
     {NULL}
 };
 
