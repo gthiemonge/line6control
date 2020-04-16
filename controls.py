@@ -171,6 +171,14 @@ class MicControls(Controls):
         ]
         super(MicControls, self).__init__(name, name, knobs)
 
+
+class ReverbControls(Controls):
+    type = "Reverb"
+
+    def __init__(self, name, realname, controls):
+        super(ReverbControls, self).__init__(name, realname or name, controls)
+
+
 AmpModels = {
     podc.DEVICE_POCKETPOD: {
         0 : AmpControls('Tube Preamp'),
@@ -571,5 +579,39 @@ DelayModels = {
                             Knob(DELAY_Param2, 'FDBK', (0, 100), (0, 127), '%'),
                             Knob(DELAY_VolumeMix, 'MIX', (0, 100), (0, 127), '%'),
                             Knob(DELAY_PrePost, 'PRE/POST', (0, 100), (0, 127), '%')))
+    }
+}
+
+
+ReverbControlsPODxt1 = (Knob(REVERB_Level, 'MIX', (0, 100), (0, 127), '%'),
+                        Knob(REVERB_Decay, 'DWELL', (0, 100), (0, 127), '%'),
+                        Knob(REVERB_Tone, 'TONE', (0, 100), (0, 127), '%'),
+                        Knob(REVERB_PrePost, 'PRE/POST', (0, 100), (0, 127), ''))
+
+
+ReverbControlsPODxt2 = (Knob(REVERB_Level, 'MIX', (0, 100), (0, 127), '%'),
+                        Knob(REVERB_PreDelay, 'PRE', (0, 100), (0, 127), '%'),
+                        Knob(REVERB_Decay, 'DECAY', (0, 100), (0, 127), '%'),
+                        Knob(REVERB_Tone, 'TONE', (0, 100), (0, 127), '%'),
+                        Knob(REVERB_PrePost, 'PRE/POST', (0, 100), (0, 127), ''))
+
+
+ReverbModels = {
+    podc.DEVICE_PODXT: {
+        0: ReverbControls('Lux Spring', '', ReverbControlsPODxt1),
+        1: ReverbControls('Std Spring', '', ReverbControlsPODxt1),
+        2: ReverbControls('King Spring', '', ReverbControlsPODxt1),
+        3: ReverbControls('Small Room', '', ReverbControlsPODxt2),
+        4: ReverbControls('Tiled Room', '', ReverbControlsPODxt2),
+        5: ReverbControls('Brite Room', '', ReverbControlsPODxt2),
+        6: ReverbControls('Dark Hall', '', ReverbControlsPODxt2),
+        7: ReverbControls('Medium Hall', '', ReverbControlsPODxt2),
+        8: ReverbControls('Large Hall', '', ReverbControlsPODxt2),
+        9: ReverbControls('Rich Chamber', '', ReverbControlsPODxt2),
+        10: ReverbControls('Chamber', '', ReverbControlsPODxt2),
+        11: ReverbControls('Cavernous', '', ReverbControlsPODxt2),
+        12: ReverbControls('Slap Plate', '', ReverbControlsPODxt2),
+        13: ReverbControls('Vintage Plate', '', ReverbControlsPODxt2),
+        14: ReverbControls('Large Plate', '', ReverbControlsPODxt2),
     }
 }

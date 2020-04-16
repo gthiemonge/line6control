@@ -100,9 +100,9 @@ class Pod(podc.Pod):
         self.patches[self.pid].set_value(param, value)
 
         # if we change an effect, we need to get all parameters values
-        if param in (STOMP_Model, MOD_Model, DELAY_Model):
+        if param in (STOMP_Model, MOD_Model, DELAY_Model, REVERB_Model):
             self.get_current_patch()
-        elif not param in (STOMP_Model, AMP_Model, MOD_Model, DELAY_Model):
+        else:
             p = None
 
             if param in (AMP_Drive, AMP_Bass, AMP_Mid,
@@ -115,29 +115,25 @@ class Pod(podc.Pod):
             if param in (GATE_Thresh, GATE_Decay, GATE_Enable):
                 p = ['gate']
 
-            if param == STOMP_Model:
-                p = ['stompbox']
-
             if param in (STOMP_Param1, STOMP_Param1_NoteValue, STOMP_Param2,
                          STOMP_Param3, STOMP_Param4, STOMP_Param5,
                          STOMP_VolumeMix, STOMP_Enable):
                 p = ['stompbox']
-
-            if param == MOD_Model:
-                p = ['modbox']
 
             if param in (MOD_Param1, MOD_Param1_DoublePrec, MOD_Param1_NoteValue,
                          MOD_Param2, MOD_Param3, MOD_Param4, MOD_Param5,
                          MOD_VolumeMix, MOD_PrePost, MOD_Enable):
                 p = ['modbox']
 
-            if param == DELAY_Model:
-                p = ['delaybox']
-
             if param in (DELAY_Param1, DELAY_Param1_DoublePrec, DELAY_Param1_NoteValue,
                          DELAY_Param2, DELAY_Param3, DELAY_Param4, DELAY_Param5,
                          DELAY_VolumeMix, DELAY_PrePost, DELAY_Enable):
                 p = ['delaybox']
+
+            if param in (REVERB_Level, REVERB_Decay, REVERB_Tone, REVERB_PreDelay,
+                         REVERB_PrePost):
+                p = ['reverbbox']
+
 
             self.update(p)
 

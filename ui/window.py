@@ -195,6 +195,24 @@ class Window:
             hbox.show()
             hbox = None
 
+        if p.device in ReverbBox.base_model:
+            hbox = Gtk.Box()
+            self.control_boxes.add(hbox)
+
+            vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+            hbox.add(vbox)
+
+            self.boxes['reverbbox'] = ReverbBox(p.device)
+            vbox.add(self.boxes['reverbbox'])
+
+            self.boxes['reverbcombobox'] = ReverbComboBox(p.device)
+            vbox.add(self.boxes['reverbcombobox'])
+
+            vbox.show()
+
+            hbox.show()
+            hbox = None
+
         hbox = Gtk.Box()
         self.control_boxes.add(hbox)
 

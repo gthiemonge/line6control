@@ -148,3 +148,9 @@ class MicComboBox(ComboBox):
 
     control = MIC_Select
     base_models = MicModels
+
+class ReverbComboBox(ComboBox):
+    __gtype_name__ = 'ReverbComboBox'
+
+    control = REVERB_Model
+    base_models = ReverbModels

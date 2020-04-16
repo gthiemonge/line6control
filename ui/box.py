@@ -87,7 +87,7 @@ class Box(Gtk.DrawingArea):
                 curr = None
 
             if curr != None:
-                if curr.control_id == MOD_PrePost or curr.control_id == DELAY_PrePost:
+                if curr.control_id in (MOD_PrePost, DELAY_PrePost, REVERB_PrePost):
                     value = pod.Pod.get().get_boolean_param(curr.control_id)
                     pod.Pod.get().set_boolean_param(curr.control_id, not value)
                     self.queue_draw()
@@ -175,7 +175,7 @@ class Box(Gtk.DrawingArea):
         p = pod.Pod.get()
 
         for elem in self.control.controls:
-            if elem.control_id == MOD_PrePost or elem.control_id == DELAY_PrePost:
+            if elem.control_id in (MOD_PrePost, DELAY_PrePost, REVERB_PrePost):
                 value = pod.Pod.get().get_boolean_param(elem.control_id)
                 self.show_text_boolean(overlay_cr,
                                        'PRE', 'POST', value, xoffset, yoffset)
@@ -506,3 +506,16 @@ class NoiseGateBox(Box):
 
     def is_enabled(self):
         return pod.Pod.get().get_param(GATE_Thresh) != 96
+
+class ReverbBox(Box):
+    __gtype_name__ = 'ReverbBox'
+
+    base_model = ReverbModels
+    control_model = REVERB_Model
+    control_enable = REVERB_Enable
+
+    box_name = 'Reverb'
+
+    width = 450
+    height = 90
+    xdiff = 50
