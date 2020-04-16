@@ -40,75 +40,161 @@ class Window:
         self.boxes = {}
 
         self.glade = Gtk.Builder()
-        self.glade.add_objects_from_file("line6control.glade", ("MainWindow",))
+        self.glade.add_from_file("line6control.glade")
         self.glade.connect_signals({
             'previous_channel_cb' : self.previous_channel_cb,
-            'next_channel_cb' : self.next_channel_cb,
-            'on_open_file_activate' : self.open_file_cb})
+            'next_channel_cb' : self.next_channel_cb})
+            #'on_open_file_activate' : self.open_file_cb})
 
-        self.main_window = self.glade.get_object("MainWindow")
+        self.main_window = self.glade.get_object("main_window")
         self.main_window.connect('delete-event', self.do_delete_event)
 
-        self.presetid = self.glade.get_object("PresetIDLabel")
-        self.presetname = self.glade.get_object("PresetNameLabel")
+        self.presetid = self.glade.get_object("preset_id")
+        self.presetid_label = Gtk.Label()
+        self.presetid.add(self.presetid_label)
+        self.presetid_label.show()
+        self.presetname = self.glade.get_object("preset_name")
 
-        self.prev_channel = self.glade.get_object("PreviousButton")
-        self.next_channel = self.glade.get_object("NextButton")
+        self.prev_channel = self.glade.get_object("previous_channel")
+        self.next_channel = self.glade.get_object("next_channel")
 
         p = pod.Pod.get()
 
         self.presetlist = PresetList()
-        self.glade.get_object("PresetListScrolledWindow").add(self.presetlist)
+        self.glade.get_object("preset_list").add(self.presetlist)
         self.presetlist.show()
 
-        if p.device in AmpBox.base_model:
-            self.boxes['ampbox'] = AmpBox(p.device)
-            self.glade.get_object("AmpBox").add(self.boxes['ampbox'])
-            self.boxes['ampcombobox'] = AmpComboBox(p.device)
-            self.glade.get_object("AmpBox").add(self.boxes['ampcombobox'])
+        self.control_boxes = self.glade.get_object("control_boxes")
 
-        if p.device in CabBox.base_model:
-            self.boxes['cabbox'] = CabBox(p.device)
-            self.glade.get_object("CabBox").add(self.boxes['cabbox'])
-            self.boxes['cabcombobox'] = CabComboBox(p.device)
-            self.glade.get_object("CabBox").add(self.boxes['cabcombobox'])
+        if p.device in AmpBox.base_model:
+            hbox = Gtk.Box()
+            self.control_boxes.add(hbox)
+
+            vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+            hbox.add(vbox)
+
+            self.boxes['ampbox'] = AmpBox(p.device)
+            vbox.add(self.boxes['ampbox'])
+
+            self.boxes['ampcombobox'] = AmpComboBox(p.device)
+            vbox.add(self.boxes['ampcombobox'])
+
+            vbox.show()
+
+            if p.device in CabBox.base_model:
+                vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+                hbox.add(vbox)
+
+                self.boxes['cabbox'] = CabBox(p.device)
+                vbox.add(self.boxes['cabbox'])
+
+                self.boxes['cabcombobox'] = CabComboBox(p.device)
+                vbox.add(self.boxes['cabcombobox'])
+
+                vbox.show()
+
+            hbox.show()
+            hbox = None
 
         if p.device in StompBox.base_model:
+            hbox = Gtk.Box()
+            self.control_boxes.add(hbox)
+
+            vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+            hbox.add(vbox)
+
             self.boxes['stompbox'] = StompBox(p.device)
-            self.glade.get_object("StompBox").add(self.boxes['stompbox'])
+            vbox.add(self.boxes['stompbox'])
+
             self.boxes['stompcombobox'] = StompComboBox(p.device)
-            self.glade.get_object("StompBox").add(self.boxes['stompcombobox'])
+            vbox.add(self.boxes['stompcombobox'])
+
+            vbox.show()
+
         elif p.device in EffectBox.base_model:
+            hbox = Gtk.Box()
+            self.control_boxes.add(hbox)
+
+            vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+            hbox.add(vbox)
+
             self.boxes['effectbox'] = EffectBox(p.device)
-            self.glade.get_object("StompBox").add(self.boxes['effectbox'])
+            vbox.add(self.boxes['effectbox'])
+
             self.boxes['effectcombobox'] = EffectComboBox(p.device)
-            self.glade.get_object("StompBox").add(self.boxes['effectcombobox'])
+            vbox.add(self.boxes['effectcombobox'])
+
+            vbox.show()
 
         if p.device in NoiseGateBox.base_model:
-            self.boxes['gate'] = NoiseGateBox(p.device)
-            self.glade.get_object("HBox3").add(self.boxes['gate'])
+            if not hbox:
+                hbox = Gtk.Box()
+                self.control_boxes.add(hbox)
 
-        if p.device in CompBox.base_model:
-            self.boxes['comp'] = CompBox(p.device)
-            self.glade.get_object("HBox2").add(self.boxes['comp'])
+            self.boxes['gate'] = NoiseGateBox(p.device)
+            hbox.add(self.boxes['gate'])
+
+        if hbox:
+            hbox.show()
+            hbox = None
 
         if p.device in ModBox.base_model:
+            hbox = Gtk.Box()
+            self.control_boxes.add(hbox)
+
+            vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+            hbox.add(vbox)
+
             self.boxes['modbox'] = ModBox(p.device)
-            self.glade.get_object("ModBox").add(self.boxes['modbox'])
+            vbox.add(self.boxes['modbox'])
+
             self.boxes['modcombobox'] = ModComboBox(p.device)
-            self.glade.get_object("ModBox").add(self.boxes['modcombobox'])
+            vbox.add(self.boxes['modcombobox'])
+
+            vbox.show()
+
+        if p.device in CompBox.base_model:
+            if not hbox:
+                hbox = Gtk.Box()
+                self.control_boxes.add(hbox)
+
+            self.boxes['comp'] = CompBox(p.device)
+            hbox.add(self.boxes['comp'])
+
+        if hbox:
+            hbox.show()
+            hbox = None
 
         if p.device in DelayBox.base_model:
+            hbox = Gtk.Box()
+            self.control_boxes.add(hbox)
+
+            vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+            hbox.add(vbox)
+
             self.boxes['delaybox'] = DelayBox(p.device)
-            self.glade.get_object("DelayBox").add(self.boxes['delaybox'])
+            vbox.add(self.boxes['delaybox'])
+
             self.boxes['delaycombobox'] = DelayComboBox(p.device)
-            self.glade.get_object("DelayBox").add(self.boxes['delaycombobox'])
+            vbox.add(self.boxes['delaycombobox'])
+
+            vbox.show()
+
+            hbox.show()
+            hbox = None
+
+        hbox = Gtk.Box()
+        self.control_boxes.add(hbox)
 
         self.boxes['eqbox'] = EQBox()
-        self.glade.get_object("MainVBox").add(self.boxes['eqbox'])
+        hbox.add(self.boxes['eqbox'])
+
+        hbox.show()
 
         for e in self.boxes:
             self.boxes[e].show()
+
+        self.main_window.show()
 
     def presets_changed(self, presets):
         if presets != None:
@@ -120,8 +206,8 @@ class Window:
                 self.boxes[e].changed()
 
         p = pod.Pod.get()
-        self.presetid.set_text("%d%s" % (p.pid / 4 + 1, chr(p.pid % 4 + 65)))
-        self.presetname.set_text(p.patches[p.pid].presetname)
+        self.presetid_label.set_text("%d%s" % (p.pid / 4 + 1, chr(p.pid % 4 + 65)))
+        self.presetname.set_label(p.patches[p.pid].presetname)
 
         self.prev_channel.set_sensitive(p.pid > 0)
         self.next_channel.set_sensitive(p.pid < p.channel_count)
