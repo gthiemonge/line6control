@@ -396,9 +396,9 @@ class CabBox(Box):
     def is_enabled(self):
         p = line6control.pod.Pod.get()
         if p.device == podc.DEVICE_POCKETPOD:
-            return line6control.pod.Pod.get().get_param(self.control_model) != 15  # XXX
+            return p.get_param(self.control_model) != 15  # XXX
         else:
-            return line6control.pod.Pod.get().get_param(self.control_model) != 0
+            return p.get_param(self.control_model) != 0
 
     def toggle_enabled(self):
         pass
@@ -418,7 +418,11 @@ class MicBox(Box):
     xdiff = 60
 
     def is_enabled(self):
-        return line6control.pod.Pod.get().get_param(ROOM_Level) > 0
+        p = line6control.pod.Pod.get()
+        if p.device == podc.DEVICE_POCKETPOD:
+            return p.get_param(CAB_Model) != 15  # XXX
+        else:
+            return p.get_param(CAB_Model) != 0
 
     def toggle_enabled(self):
         pass
@@ -512,10 +516,6 @@ class NoiseGateBox(Box):
     def changed(self):
         self.queue_draw()
 
-    def is_enabled(self):
-        return (line6control.pod.Pod.get().get_param(GATE_Thresh) != 96 and
-                line6control.pod.Pod.get().get_param(GATE_Enable) > 0)
-
 class ReverbBox(Box):
     __gtype_name__ = 'ReverbBox'
 
@@ -528,3 +528,6 @@ class ReverbBox(Box):
     width = 450
     height = 90
     xdiff = 50
+
+    def is_enabled(self):
+        return line6control.pod.Pod.get().get_param(REVERB_Level) > 0
