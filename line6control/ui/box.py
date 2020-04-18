@@ -513,7 +513,8 @@ class NoiseGateBox(Box):
         self.queue_draw()
 
     def is_enabled(self):
-        return line6control.pod.Pod.get().get_param(GATE_Thresh) != 96
+        return (line6control.pod.Pod.get().get_param(GATE_Thresh) != 96 and
+                line6control.pod.Pod.get().get_param(GATE_Enable) > 0)
 
 class ReverbBox(Box):
     __gtype_name__ = 'ReverbBox'
