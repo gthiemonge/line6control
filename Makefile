@@ -3,9 +3,9 @@ VERSION=dev
 all: podc
 
 .PHONY: podc
-podc: pypod.c
+podc: module/pypod.c
 	python3 setup.py build
-	ln -fs $$(find build/ -wholename "*/lib.*/podc*.so") podc.so
+	cp $$(find build/ -wholename "*/lib.*/podc*.so") .
 
 clean:
 	rm -rf build *.pyc ui/*.pyc *~ ui/*~ podc.so

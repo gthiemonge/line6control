@@ -549,8 +549,8 @@ pod_idle (gpointer data)
     do {
         err = poll(pfds, npfds, 50);
         if(err < 0) { // error
-            PyErr_SetString(PodError,
-                    "Error while polling file descriptors");
+            fprintf(stderr, "Error while polling file descriptors: %s\n",
+                    strerror(errno));
             free(pfds);
             return TRUE;
         }
@@ -568,7 +568,7 @@ pod_idle (gpointer data)
                     snd_rawmidi_poll_descriptors_revents(self->input,
                         pfds, npfds,
                         &revents)) < 0) {
-            PyErr_Format(PodError, "Cannot get poll events: %s\n",
+            fprintf(stderr, "Cannot get poll events: %s\n",
                     snd_strerror(errno));
             free(pfds);
             return TRUE;
@@ -583,7 +583,7 @@ pod_idle (gpointer data)
         }
         err = snd_rawmidi_read(self->input, buf, sizeof(buf));
         if (err < 0) {
-            PyErr_Format(PodError, "Cannot read from port: %s\n",
+            fprintf(stderr, "Cannot read from port: %s\n",
                     snd_strerror(err));
             free(pfds);
             return TRUE;
