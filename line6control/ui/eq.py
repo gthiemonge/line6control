@@ -179,15 +179,18 @@ class EQBox(Gtk.DrawingArea):
             to_gain(line6control.pod.Pod.get().get_param(EQ_Gain3)),
             to_gain(line6control.pod.Pod.get().get_param(EQ_Gain4))]
 
+        values = zip(f, g)
+        values = sorted(values, key=lambda e: e[0])
+
         plots = []
 
-        for i in range(0, 4):
+        for freq, gain in values:
             y = ((self.height - offset) / 2 + 5 -
-                 g[i] / (12.6 + 12.8) * (self.height - offset - 5 / 2))
+                 gain / (12.6 + 12.8) * (self.height - offset - 5 / 2))
 
             x_max = math.log(11300.)
             x_min = math.log(50.)
-            x_log = math.log(f[i])
+            x_log = math.log(freq)
             x = ((self.width - offset - 5 - (offset + 20))
                  * (x_log - x_min) / (x_max - x_min) + offset + 20)
             plots.append((x, y))
