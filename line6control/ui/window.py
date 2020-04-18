@@ -96,7 +96,7 @@ class Window:
             hbox2.show()
             vbox.show()
 
-        if True: #p.device in MicBox.base_model:
+        if p.device in MicBox.base_model:
             vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
             hbox.add(vbox)
 
@@ -217,13 +217,14 @@ class Window:
             hbox.show()
             hbox = None
 
-        hbox = Gtk.Box()
-        self.control_boxes.add(hbox)
+        if p.device in EQBox.base_model:
+            hbox = Gtk.Box()
+            self.control_boxes.add(hbox)
 
-        self.boxes['eqbox'] = EQBox()
-        hbox.add(self.boxes['eqbox'])
+            self.boxes['eqbox'] = EQBox()
+            hbox.add(self.boxes['eqbox'])
 
-        hbox.show()
+            hbox.show()
 
         for e in self.boxes:
             self.boxes[e].show()

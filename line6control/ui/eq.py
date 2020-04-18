@@ -102,6 +102,7 @@ class EQBox(Gtk.DrawingArea):
     width = 450
     height = 140
 
+    base_model = EQModels
     control_enable = EQ_Enable
     last_button_press_event = 0
 

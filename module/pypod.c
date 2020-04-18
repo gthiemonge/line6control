@@ -35,6 +35,81 @@ const unsigned char pod_id[] = { 0x00, 0x01, 0x0c };
 
 const unsigned char device_query[] = { 0xf0, 0x7e, 0x7f, 0x06, 0x01, 0xf7 };
 
+struct pocket_pod_cc_map {
+    uint8_t byte;
+    uint8_t bits;
+    uint8_t msb;
+    uint8_t lsb;
+
+    uint16_t cc;
+};
+
+/* From POD Midi / Sysex Specification and Notes */
+const struct pocket_pod_cc_map pocket_pod_cc_map[] = {
+    { 0, 1, 0, 0, 25 },
+    { 1, 1, 0, 0, 26 },
+    { 2, 1, 0, 0, 27 },
+    { 3, 1, 0, 0, 28 },
+    { 4, 1, 0, 0, 50 },
+    { 5, 1, 0, 0, 36 },
+    { 6, 1, 0, 0, 22 },
+    { 7, 1, 0, 0, 73 },
+    { 8, 6, 5, 0, 12 },
+    { 9, 6, 5, 0, 13 },
+    { 10, 6, 5, 0, 20 },
+    { 11, 6, 5, 0, 14 },
+    { 12, 6, 5, 0, 15 },
+    { 13, 6, 5, 0, 16 },
+    { 14, 6, 5, 0, 21 },
+    { 15, 6, 5, 0, 17 },
+    { 16, 6, 5, 0, 23 },
+    { 17, 6, 5, 0, 24 },
+    { 18, 7, 6, 0, 4 },
+    { 19, 7, 6, 0, 44 },
+    { 20, 7, 6, 0, 45 },
+    { 22, 7, 6, 0, 7 },
+    { 23, 7, 6, 0, 46 },
+    { 24, 1, 0, 0, 47 },
+    { 26, 8, 7, 0, 30 },
+    { 27, 8, 7, 0, 62 },
+    { 34, 6, 5, 0, 32 },
+    { 36, 6, 5, 0, 34 },
+    { 38, 1, 0, 0, 37 },
+    { 39, 6, 5, 0, 38 },
+    { 40, 6, 5, 0, 39 },
+    { 41, 6, 5, 0, 40 },
+    { 42, 6, 5, 0, 41 },
+    { 43, 6, 5, 0, 18 },
+    { 44, 4, 3, 0, 71 },
+    { 45, 6, 5, 0, 72 },
+    { 46, 4, 3, 0, 19 },
+    { 47, 6, 5, 0, 1 },
+    { 48, 6, 5, 0, 49 },
+    { 48, 3, 2, 0, 42 },
+    { 48, 8, 7, 0, 51 },
+    { 49, 5, 4, 0, 51 },
+    { 50, 8, 7, 0, 52 },
+    { 51, 1, 0, 0, 52 },
+    { 52, 7, 6, 0, 53 },
+    { 53, 8, 7, 0, 54 },
+    { 54, 2, 1, 0, 54 },
+    { 48, 8, 7, 0, 51 },
+    { 49, 5, 4, 0, 51 },
+    { 50, 8, 7, 0, 52 },
+    { 51, 1, 0, 0, 52 },
+    { 52, 7, 6, 0, 53 },
+    { 53, 8, 7, 0, 54 },
+    { 54, 2, 1, 0, 54 },
+    { 48, 1, 0, 0, 55 },
+    { 49, 8, 7, 0, 56 },
+    { 50, 4, 3, 0, 56 },
+    { 51, 8, 7, 0, 57 },
+    { 52, 4, 3, 0, 57 },
+    { 48, 8, 7, 0, 58 },
+    { 49, 4, 3, 0, 58 },
+    { 50, 7, 6, 0, 59 },
+};
+
 static PyModuleDef podc_module;
 
 typedef struct {
@@ -388,15 +463,25 @@ pod_parse_sysex (Pod *pod)
             }
             preset_name[i] = '\0';
 
-            i = 4;
-            for(j = sysex_len - 142 - 1; j < sysex_len - 33; j += 2) {
+            for(i = 0, j = sysex_len - 142 - 1; j < sysex_len - 33; j += 2, i++) {
 
-                PyObject *k = PyLong_FromLong(i++);
-                PyObject *v = PyLong_FromLong(
-                    pod->buffer->data[j] << 4 |
-                    pod->buffer->data[j + 1]);
+                struct pocket_pod_cc_map const *map = NULL;
+                unsigned int k;
+                for (k = 0; k < sizeof(pocket_pod_cc_map)/sizeof(pocket_pod_cc_map[0]); k++) {
+                    if (pocket_pod_cc_map[k].byte == i) {
+                        map = &pocket_pod_cc_map[k];
+                        break;
+                    }
+                }
 
-                PyDict_SetItem(preset_dict, k, v);
+                if (map) {
+                    PyObject *k = PyLong_FromLong(map->cc);
+                    PyObject *v = PyLong_FromLong(
+                        pod->buffer->data[j] << 4 |
+                        pod->buffer->data[j + 1]);
+
+                    PyDict_SetItem(preset_dict, k, v);
+                }
             }
             break;
         case DEVICE_PODXT:

@@ -34,8 +34,7 @@ class Preset(object):
 
     def get_value(self, param):
         if param not in self.params:
-            print("FIXME unknown param {}".format(param))
-            return 0
+            raise Exception("FIXME Unknown param {}".format(param))
         return self.params[param]
 
     def set_value(self, param, val):

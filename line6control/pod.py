@@ -158,7 +158,7 @@ def get_devices():
 
     f = open("/proc/asound/cards")
 
-    reg = re.compile('\s*(\d+) \[POD') #XXX
+    reg = re.compile('\s*(\d+) \[POD')
 
     while True:
         l = f.readline()

@@ -364,6 +364,10 @@ class AmpBox(Box):
     xdiff = 60
 
     def __init__(self, device):
+        p = line6control.pod.Pod.get()
+        if p.device == podc.DEVICE_POCKETPOD:
+            self.control_model = AMP_Model_wo_defaults
+
         super(AmpBox, self).__init__(device)
 
     def is_enabled(self):
@@ -390,10 +394,11 @@ class CabBox(Box):
     xdiff = 60
 
     def is_enabled(self):
-        if line6control.pod.Pod.get().get_param(self.control_model) == 0:
-            return False
+        p = line6control.pod.Pod.get()
+        if p.device == podc.DEVICE_POCKETPOD:
+            return line6control.pod.Pod.get().get_param(self.control_model) != 15  # XXX
         else:
-            return True
+            return line6control.pod.Pod.get().get_param(self.control_model) != 0
 
     def toggle_enabled(self):
         pass
@@ -443,6 +448,9 @@ class EffectBox(Box):
     width = 450
     height = 90
     xdiff = 50
+
+    def is_enabled(self):
+        return line6control.pod.Pod.get().get_param(TWEAK) > 0
 
 class ModBox(Box):
     __gtype_name__ = 'ModBox'

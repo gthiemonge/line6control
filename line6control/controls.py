@@ -320,9 +320,7 @@ MicModels = {
 
 CompModels = {
     podc.DEVICE_POCKETPOD: {
-        0 : EffectControls('Compressor', '',
-                           (Knob(COMP_Thresh, 'THRESH', (-63, 0), (0, 126), 'dB'),
-                            Knob(COMP_Gain, 'GAIN', (0, 16), (0, 127), 'dB')))
+        0 : EffectControls('Compressor', '', ()),
     },
     podc.DEVICE_PODXT: {
         0 : EffectControls('Compressor', '',
@@ -614,4 +612,8 @@ ReverbModels = {
         13: ReverbControls('Vintage Plate', '', ReverbControlsPODxt2),
         14: ReverbControls('Large Plate', '', ReverbControlsPODxt2),
     }
+}
+
+EQModels = {
+    podc.DEVICE_PODXT: {}
 }
