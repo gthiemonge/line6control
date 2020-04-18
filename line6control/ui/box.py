@@ -27,8 +27,8 @@ import math
 import time
 import sys
 
-from controls import *
-import pod
+from line6control.controls import *
+import line6control.pod
 import podc
 from .resources import Resources
 
@@ -88,8 +88,8 @@ class Box(Gtk.DrawingArea):
 
             if curr != None:
                 if curr.control_id in (MOD_PrePost, DELAY_PrePost, REVERB_PrePost):
-                    value = pod.Pod.get().get_boolean_param(curr.control_id)
-                    pod.Pod.get().set_boolean_param(curr.control_id, not value)
+                    value = line6control.pod.Pod.get().get_boolean_param(curr.control_id)
+                    line6control.pod.Pod.get().set_boolean_param(curr.control_id, not value)
                     self.queue_draw()
                 else:
                     self.pressed_knob = curr
@@ -101,7 +101,7 @@ class Box(Gtk.DrawingArea):
 
     def do_motion_notify_event(self, ev):
         if self.pressed_knob != None:
-            value = pod.Pod.get().get_param(self.pressed_knob.control_id)
+            value = line6control.pod.Pod.get().get_param(self.pressed_knob.control_id)
             value += int(self.button_y - ev.y)
 
             if value < self.pressed_knob.device_range[0]:
@@ -111,7 +111,7 @@ class Box(Gtk.DrawingArea):
 
             now = time.time ()
             if self.last_sent == None or (now - self.last_sent) > 0.01:
-                pod.Pod.get().send_cc(self.pressed_knob.control_id, value)
+                line6control.pod.Pod.get().send_cc(self.pressed_knob.control_id, value)
                 self.last_sent = now
 
             self.button_y = ev.y
@@ -172,11 +172,11 @@ class Box(Gtk.DrawingArea):
         xoffset = 35
         yoffset = (self.height - k_bg_pix.get_height()) / 2
 
-        p = pod.Pod.get()
+        p = line6control.pod.Pod.get()
 
         for elem in self.control.controls:
             if elem.control_id in (MOD_PrePost, DELAY_PrePost, REVERB_PrePost):
-                value = pod.Pod.get().get_boolean_param(elem.control_id)
+                value = line6control.pod.Pod.get().get_boolean_param(elem.control_id)
                 self.show_text_boolean(overlay_cr,
                                        'PRE', 'POST', value, xoffset, yoffset)
 
@@ -337,16 +337,16 @@ class Box(Gtk.DrawingArea):
             self.queue_draw()
             return
 
-        p = pod.Pod.get()
+        p = line6control.pod.Pod.get()
         param = p.get_param(self.control_model)
         self.control = self.model.get(param, self.model[0]) # XXX
         self.queue_draw()
 
     def is_enabled(self):
-        return pod.Pod.get().get_boolean_param(self.control_enable)
+        return line6control.pod.Pod.get().get_boolean_param(self.control_enable)
 
     def toggle_enabled(self):
-        pod.Pod.get().set_boolean_param(self.control_enable, not self.is_enabled())
+        line6control.pod.Pod.get().set_boolean_param(self.control_enable, not self.is_enabled())
         self.queue_draw()
 
 
@@ -367,13 +367,13 @@ class AmpBox(Box):
         super(AmpBox, self).__init__(device)
 
     def is_enabled(self):
-        p = pod.Pod.get()
+        p = line6control.pod.Pod.get()
         if p.device == podc.DEVICE_POCKETPOD:
             return True
         return not p.get_boolean_param(self.control_enable)
 
     def toggle_enabled(self):
-        pod.Pod.get().set_boolean_param(self.control_enable, self.is_enabled())
+        line6control.pod.Pod.get().set_boolean_param(self.control_enable, self.is_enabled())
         self.queue_draw()
 
 class CabBox(Box):
@@ -390,7 +390,7 @@ class CabBox(Box):
     xdiff = 60
 
     def is_enabled(self):
-        if pod.Pod.get().get_param(self.control_model) == 0:
+        if line6control.pod.Pod.get().get_param(self.control_model) == 0:
             return False
         else:
             return True
@@ -413,7 +413,7 @@ class MicBox(Box):
     xdiff = 60
 
     def is_enabled(self):
-        return pod.Pod.get().get_param(ROOM_Level) > 0
+        return line6control.pod.Pod.get().get_param(ROOM_Level) > 0
 
     def toggle_enabled(self):
         pass
@@ -505,7 +505,7 @@ class NoiseGateBox(Box):
         self.queue_draw()
 
     def is_enabled(self):
-        return pod.Pod.get().get_param(GATE_Thresh) != 96
+        return line6control.pod.Pod.get().get_param(GATE_Thresh) != 96
 
 class ReverbBox(Box):
     __gtype_name__ = 'ReverbBox'

@@ -22,7 +22,7 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
 from gi.repository import GObject
 
-import pod
+import line6control.pod
 
 (
     COLUMN_ID,
@@ -45,8 +45,8 @@ class PresetList(Gtk.TreeView):
 
         self.set_size_request(150, -1)
 
-        for i in pod.Pod.get().patches:
-            patch = pod.Pod.get().patches[i]
+        for i in line6control.pod.Pod.get().patches:
+            patch = line6control.pod.Pod.get().patches[i]
 
             podid = "%d%s" % (i / 4 + 1, chr(i % 4 + 65))
             name = patch.presetname
@@ -77,4 +77,4 @@ class PresetList(Gtk.TreeView):
     def do_row_activated(self, path, view):
         iter = self.model.get_iter(path)
         id = self.model.get_value(iter, COLUMN_ID)
-        pod.Pod.get().set_channel(id)
+        line6control.pod.Pod.get().set_channel(id)

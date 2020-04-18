@@ -27,11 +27,11 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
 from gi.repository import GObject
 
-from preset import Preset
-from controls import *
+from .preset import Preset
+from .controls import *
 
-from ui import Interface
-from utils import debug_msg
+from .ui import Interface
+from .utils import debug_msg
 
 # defined in podc
 #

@@ -17,8 +17,8 @@
 #  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
 #  USA
 
-from controls import *
-import pod
+from .controls import *
+import line6control.pod
 import sys
 from struct import unpack
 

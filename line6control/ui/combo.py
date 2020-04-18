@@ -22,9 +22,9 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
 from gi.repository import GObject
 
-import pod
+import line6control.pod
 import podc
-from controls import *
+from line6control.controls import *
 
 class ComboBox(Gtk.ComboBox):
     __gtype_name__ = 'ComboBox'
@@ -77,17 +77,17 @@ class ComboBox(Gtk.ComboBox):
     def do_changed(self):
         if self.get_active() != -1 and self.from_device == False:
             value = int(self.store.get(self.get_active_iter(), 0)[0])
-            pod.Pod.get().send_cc(self.control, value)
+            line6control.pod.Pod.get().send_cc(self.control, value)
 
             # Changing Amp auto-updates
             if self.__class__.__name__ != 'AmpComboBox':
-                pod.Pod.get().get_current_patch()
-                pod.Pod.get().update()
+                line6control.pod.Pod.get().get_current_patch()
+                line6control.pod.Pod.get().update()
 
     def changed(self):
         if len(self.models) == 1:
             return
-        p = pod.Pod.get()
+        p = line6control.pod.Pod.get()
         param = p.get_param(self.control)
         self.set_active(param, True)
 
@@ -130,7 +130,7 @@ class AmpComboBox(ComboBox):
 
     # specific for Amp !!
     def changed(self):
-        p = pod.Pod.get()
+        p = line6control.pod.Pod.get()
         #if p.device == podc.DEVICE_POCKETPOD:
         param = p.get_param(AMP_Model_wo_defaults)
         #else:

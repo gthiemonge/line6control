@@ -17,6 +17,9 @@
 #  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
 #  USA
 
+import os
+import sys
+
 import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
@@ -27,11 +30,34 @@ import cairo
 class Resources:
     __instance = None
 
+    @classmethod
+    def _root_directories(cls):
+        yield os.path.join(sys.prefix, "share", "line6control")
+        yield os.path.join("line6control", "data")
+        yield os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                           "..", "data")
+
+    @classmethod
+    def get_root_directory(cls):
+        for path in cls._root_directories():
+            if os.path.isdir(path):
+                return path
+        return None
+
     def __init__(self):
         Resources.__instance = self
-        self.knob_background = cairo.ImageSurface.create_from_png("data/knob_bg.png")
-        self.knob_pix = cairo.ImageSurface.create_from_png("data/knob.png")
-        self.switch = cairo.ImageSurface.create_from_png("data/switch.png")
+
+        filename = os.path.join(Resources.get_root_directory(),
+                                "knob_bg.png")
+        self.knob_background = cairo.ImageSurface.create_from_png(filename)
+
+        filename = os.path.join(Resources.get_root_directory(),
+                                "knob.png")
+        self.knob_pix = cairo.ImageSurface.create_from_png(filename)
+
+        filename = os.path.join(Resources.get_root_directory(),
+                                "switch.png")
+        self.switch = cairo.ImageSurface.create_from_png(filename)
 
     @classmethod
     def get(cls):

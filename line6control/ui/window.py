@@ -21,17 +21,18 @@ import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
 
-import pod
+import line6control.pod
 
 import os
 
-from utils import *
-import pod
+from line6control.utils import *
 from .box import *
 from .combo import *
 from .eq import *
 from .presetlist import PresetList
-from importl6t import ImportL6T
+from .resources import Resources
+from line6control.importl6t import ImportL6T
+
 
 class Window:
     __gtype_name__ = 'Window'
@@ -40,7 +41,10 @@ class Window:
         self.boxes = {}
 
         self.glade = Gtk.Builder()
-        self.glade.add_from_file("line6control.glade")
+        self.glade.add_from_file(
+            os.path.join(Resources.get_root_directory(),
+                         "line6control.glade"))
+
         self.glade.connect_signals({
             'previous_channel_cb' : self.previous_channel_cb,
             'next_channel_cb' : self.next_channel_cb,
@@ -58,7 +62,7 @@ class Window:
         self.prev_channel = self.glade.get_object("previous_channel")
         self.next_channel = self.glade.get_object("next_channel")
 
-        p = pod.Pod.get()
+        p = line6control.pod.Pod.get()
 
         route_id = p.route + 1
         self.glade.get_object("routing_{}".format(route_id)).activate()
@@ -235,7 +239,7 @@ class Window:
             for e in self.boxes:
                 self.boxes[e].changed()
 
-        p = pod.Pod.get()
+        p = line6control.pod.Pod.get()
         self.presetid_label.set_text("%d%s" % (p.pid / 4 + 1, chr(p.pid % 4 + 65)))
         self.presetname.set_label(p.patches[p.pid].presetname)
 
@@ -243,18 +247,18 @@ class Window:
         self.next_channel.set_sensitive(p.pid < p.channel_count)
 
     def do_delete_event(self, widget, ev):
-        pod.Pod.get().close()
+        line6control.pod.Pod.get().close()
         Gtk.main_quit()
 
     def previous_channel_cb(self, obj):
-        curid = pod.Pod.get().pid
+        curid = line6control.pod.Pod.get().pid
         if curid > 0:
-            pod.Pod.get().set_channel(curid - 1)
+            line6control.pod.Pod.get().set_channel(curid - 1)
 
     def next_channel_cb(self, obj):
-        curid = pod.Pod.get().pid
-        if curid < pod.Pod.get().channel_count:
-            pod.Pod.get().set_channel(curid + 1)
+        curid = line6control.pod.Pod.get().pid
+        if curid < line6control.pod.Pod.get().channel_count:
+            line6control.pod.Pod.get().set_channel(curid + 1)
 
     def open_file_cb(self, obj):
         fd = Gtk.FileSelection("File selection")
@@ -271,7 +275,7 @@ class Window:
 
             route_id = int(obj_id.split('_')[1]) - 1
 
-            p = pod.Pod.get()
+            p = line6control.pod.Pod.get()
             p.set_route(route_id)
 
     def open_file_ok_cb(self, w, fd):
@@ -285,7 +289,7 @@ class Window:
             buf = fd.read()
             fd.close()
 
-            pod.Pod.get().set_current_patch(buf)
+            line6control.pod.Pod.get().set_current_patch(buf)
 
     def open_l6t_file_cb(self, obj):
         i = ImportL6T("marshall-jcm800.l6t")

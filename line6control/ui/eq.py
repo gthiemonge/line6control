@@ -26,8 +26,8 @@ from gi.repository import Gdk
 import math
 import time
 
-from controls import *
-import pod
+from line6control.controls import *
+import line6control.pod
 from .resources import Resources
 
 freq_table = [ [50.0, 55.0, 60.0, 65.0, 70.0, 75.0, 80.0, 85.0,
@@ -168,15 +168,15 @@ class EQBox(Gtk.DrawingArea):
         def to_gain(byte):
             return (12.6 + 12.8) * float(byte) / 127.0 - 12.8
 
-        f = [freq_table[0][pod.Pod.get().get_param(EQ_Freq1)],
-            freq_table[1][pod.Pod.get().get_param(EQ_Freq2)],
-            freq_table[2][pod.Pod.get().get_param(EQ_Freq3)],
-            freq_table[3][pod.Pod.get().get_param(EQ_Freq4)]]
+        f = [freq_table[0][line6control.pod.Pod.get().get_param(EQ_Freq1)],
+            freq_table[1][line6control.pod.Pod.get().get_param(EQ_Freq2)],
+            freq_table[2][line6control.pod.Pod.get().get_param(EQ_Freq3)],
+            freq_table[3][line6control.pod.Pod.get().get_param(EQ_Freq4)]]
         # -12.8 to 12.6
-        g = [to_gain(pod.Pod.get().get_param(EQ_Gain1)),
-            to_gain(pod.Pod.get().get_param(EQ_Gain2)),
-            to_gain(pod.Pod.get().get_param(EQ_Gain3)),
-            to_gain(pod.Pod.get().get_param(EQ_Gain4))]
+        g = [to_gain(line6control.pod.Pod.get().get_param(EQ_Gain1)),
+            to_gain(line6control.pod.Pod.get().get_param(EQ_Gain2)),
+            to_gain(line6control.pod.Pod.get().get_param(EQ_Gain3)),
+            to_gain(line6control.pod.Pod.get().get_param(EQ_Gain4))]
 
         plots = []
 
@@ -233,8 +233,8 @@ class EQBox(Gtk.DrawingArea):
         self.queue_draw()
 
     def is_enabled(self):
-        return pod.Pod.get().get_boolean_param(self.control_enable)
+        return line6control.pod.Pod.get().get_boolean_param(self.control_enable)
 
     def toggle_enabled(self):
-        pod.Pod.get().set_boolean_param(self.control_enable, not self.is_enabled())
+        line6control.pod.Pod.get().set_boolean_param(self.control_enable, not self.is_enabled())
         self.queue_draw()

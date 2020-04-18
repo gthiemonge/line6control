@@ -28,26 +28,26 @@ except:
 import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
-from gi.repository import GLib
 
-import pod
-import ui
+import line6control.pod
+import line6control.ui
 
-import gettext
-from gettext import gettext as _
-_ = gettext.gettext
 
-if __name__ == '__main__':
+def main():
     try:
-        devices = pod.get_devices()
-        pod.Pod(devices[0])
+        devices = line6control.pod.get_devices()
+        line6control.pod.Pod(devices[0])
     except IndexError:
-        dialog = Gtk.MessageDialog(None, 0, Gtk.MESSAGE_ERROR, Gtk.BUTTONS_OK,
-                                   _("Can't find Line 6 device.\nCheck your connection."))
+        dialog = Gtk.MessageDialog(None, 0, Gtk.MessageType.ERROR,
+                                   Gtk.ButtonsType.OK,
+                                   "Can't find Line 6 device.\nCheck your connection.")
         dialog.run()
         dialog.destroy()
         sys.exit(1)
 
-    ui.Interface()
+    line6control.ui.Interface()
     Gtk.main()
 
+
+if __name__ == '__main__':
+    main()

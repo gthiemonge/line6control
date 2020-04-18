@@ -67,7 +67,7 @@ class Interface:
         return False
 
     def check_presetlist_done(self):
-        p = pod.Pod.get()
+        p = line6control.pod.Pod.get()
         npatches = len(p.patches)
 
         if npatches > p.channel_count:

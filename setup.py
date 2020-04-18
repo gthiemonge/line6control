@@ -1,16 +1,10 @@
-#!/usr/bin/env python
-
-from distutils.core import setup, Extension
-import os
+import setuptools
+from setuptools import setup, Extension, find_packages
 
 module = Extension('podc',
                    include_dirs = ['/usr/include/glib-2.0',
                                    '/usr/lib64/glib-2.0/include'],
                    libraries = ['glib-2.0', 'asound'],
-                   sources = ['pypod.c'])
+                   sources = ['module/pypod.c'])
 
-setup(name = 'podc',
-      version = '0.1',
-      description = 'package',
-      ext_modules = [module])
-
+setuptools.setup(ext_modules=[module])
