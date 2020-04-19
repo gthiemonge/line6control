@@ -91,7 +91,7 @@ class Window:
 
             if p.device in CabBox.base_model:
                 self.boxes['cabcombobox'] = CabComboBox(p.device)
-                hbox2.add(self.boxes['cabcombobox'])
+                hbox2.pack_start(self.boxes['cabcombobox'], True, True, 0)
 
             hbox2.show()
             vbox.show()
